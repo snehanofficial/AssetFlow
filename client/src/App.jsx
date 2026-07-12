@@ -7,6 +7,8 @@ import ProtectedLayout from './components/common/ProtectedLayout.jsx';
 // Feature Views
 import Login from './features/auth/Login.jsx';
 import Signup from './features/auth/Signup.jsx';
+import ForgotPassword from './features/auth/ForgotPassword.jsx';
+import ResetPassword from './features/auth/ResetPassword.jsx';
 import Dashboard from './features/dashboard/Dashboard.jsx';
 import AssetList from './features/assets/AssetList.jsx';
 import AllocationList from './features/allocation/AllocationList.jsx';
@@ -27,6 +29,8 @@ export const App = () => {
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
           </Route>
 
           {/* Protected Application routes */}
