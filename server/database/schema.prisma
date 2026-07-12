@@ -1,0 +1,113 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  ADMIN
+  ASSET_MANAGER
+  DEPT_HEAD
+  EMPLOYEE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Employee {
+  id           String        @id @default(uuid()) @db.Uuid
+  email        String        @unique @db.VarChar(255)
+  password     String        @db.VarChar(255)
+  name         String        @db.VarChar(100)
+  role         UserRole      @default(EMPLOYEE)
+  status       UserStatus    @default(ACTIVE)
+  departmentId String?       @db.Uuid
+  createdAt    DateTime      @default(now()) @db.Timestamptz
+  updatedAt    DateTime      @updatedAt @db.Timestamptz
+  deletedAt    DateTime?     @db.Timestamptz
+
+  department        Department?    @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: Restrict)
+  headedDepartments Department[]   @relation("DepartmentHead")
+  refreshTokens     RefreshToken[]
+  auditLogs         AuditLog[]
+
+  @@index([email])
+  @@index([deletedAt])
+  @@index([role])
+  @@index([status])
+  @@map("Employee")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  token      String   @unique @db.VarChar(512)
+  employeeId String   @db.Uuid
+  expiresAt  DateTime @db.Timestamptz
+  createdAt  DateTime @default(now()) @db.Timestamptz
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([employeeId])
+  @@map("RefreshToken")
+}
+
+model Department {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String     @unique @db.VarChar(100)
+  parentId  String?    @db.Uuid
+  headId    String?    @db.Uuid
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now()) @db.Timestamptz
+  updatedAt DateTime   @updatedAt @db.Timestamptz
+  deletedAt DateTime?  @db.Timestamptz
+
+  parent    Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Department[] @relation("DepartmentHierarchy")
+  head      Employee?    @relation("DepartmentHead", fields: [headId], references: [id], onDelete: SetNull)
+  employees Employee[]  @relation("DepartmentMembers")
+
+  @@index([name])
+  @@index([deletedAt])
+  @@index([status])
+  @@map("Department")
+}
+
+model AssetCategory {
+  id                 String    @id @default(uuid()) @db.Uuid
+  name               String    @unique @db.VarChar(100)
+  customFieldsSchema Json      @default("[]")
+  createdAt          DateTime  @default(now()) @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @db.Timestamptz
+  deletedAt          DateTime? @db.Timestamptz
+
+  @@index([name])
+  @@index([deletedAt])
+  @@map("AssetCategory")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  actorEmail String?  @db.VarChar(255)
+  action     String   @db.VarChar(50)
+  tableName  String   @db.VarChar(100)
+  recordId   String   @db.Uuid
+  oldValue   Json?
+  newValue   Json?
+  ipAddress  String?  @db.VarChar(45)
+  createdAt  DateTime @default(now()) @db.Timestamptz
+
+  actor Employee? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([tableName])
+  @@index([recordId])
+  @@map("AuditLog")
+}
+

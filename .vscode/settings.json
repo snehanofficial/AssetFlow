@@ -1,0 +1,14 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-eslint",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "eslint.workingDirectories": [
+    "./client",
+    "./server"
+  ],
+  "prisma.pinToPrisma6": true
+}

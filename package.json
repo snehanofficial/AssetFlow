@@ -1,0 +1,30 @@
+{
+  "name": "assetflow-root",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "prepare": "husky",
+    "lint": "npm run lint --prefix client && npm run lint --prefix server"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "lint-staged": {
+    "client/src/**/*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "server/**/*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
