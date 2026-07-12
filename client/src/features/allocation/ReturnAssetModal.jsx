@@ -37,7 +37,7 @@ export const ReturnAssetModal = ({ allocation, onClose, onSuccess }) => {
     register,
     handleSubmit,
     watch,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(returnSchema),
     defaultValues: {
@@ -62,8 +62,8 @@ export const ReturnAssetModal = ({ allocation, onClose, onSuccess }) => {
     },
   });
 
-  const onSubmit = (formData) => {
-    mutation.mutate({ id: allocation.id, data: formData });
+  const onSubmit = async (formData) => {
+    await mutation.mutateAsync({ id: allocation.id, data: formData });
   };
 
   const isPoorCondition = watchedCondition === 'POOR';
@@ -187,7 +187,7 @@ export const ReturnAssetModal = ({ allocation, onClose, onSuccess }) => {
             </button>
             <button
               type="submit"
-              disabled={mutation.isPending}
+              disabled={isSubmitting || mutation.isPending}
               className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-500 disabled:opacity-50 transition-all"
             >
               {mutation.isPending ? (

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AllocationList } from './AllocationList.jsx';
 import { AllocationForm } from './AllocationForm.jsx';
 import { ReturnAssetModal } from './ReturnAssetModal.jsx';
@@ -9,7 +10,10 @@ import { TransferInbox } from './TransferInbox.jsx';
  * Tab-based orchestrator for Allocations and Transfers sub-features.
  */
 export const AllocationsPage = () => {
-  const [activeTab, setActiveTab] = useState('allocations');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'allocations';
+  const setActiveTab = (tab) => setSearchParams({ tab });
+
   const [showAllocate, setShowAllocate] = useState(false);
   const [returnTarget, setReturnTarget] = useState(null);
   const [transferTarget, setTransferTarget] = useState(null); // { assetId }
@@ -53,11 +57,20 @@ export const AllocationsPage = () => {
       {activeTab === 'allocations' && (
         <AllocationList
           onReturn={(allocation) => setReturnTarget(allocation)}
-          onTransfer={(allocation) => setTransferTarget({ assetId: allocation.assetId })}
+          onTransfer={(allocation) => {
+            setTransferTarget({ assetId: allocation.assetId });
+            setActiveTab('transfers');
+          }}
         />
       )}
 
-      {activeTab === 'transfers' && <TransferInbox />}
+      {activeTab === 'transfers' && (
+        <TransferInbox
+          key={transferTarget?.assetId || 'default'}
+          defaultTransferTarget={transferTarget}
+          onClearDefault={() => setTransferTarget(null)}
+        />
+      )}
 
       {/* Modals */}
       {showAllocate && (

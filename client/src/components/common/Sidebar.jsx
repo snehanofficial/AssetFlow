@@ -15,12 +15,22 @@ import { useAuth } from '../../context/AuthContext.jsx';
 
 const navigationItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Assets', path: '/assets', icon: Package },
-  { name: 'Allocations', path: '/allocations', icon: UserCheck },
+  {
+    name: 'Assets',
+    path: '/assets',
+    icon: Package,
+    allowedRoles: ['ADMIN', 'ASSET_MANAGER', 'DEPT_HEAD'],
+  },
+  {
+    name: 'Allocations',
+    path: '/allocations',
+    icon: UserCheck,
+    allowedRoles: ['ADMIN', 'ASSET_MANAGER', 'DEPT_HEAD'],
+  },
   { name: 'Bookings', path: '/bookings', icon: Calendar },
   { name: 'Maintenance', path: '/maintenance', icon: Wrench },
-  { name: 'Audits', path: '/audits', icon: ShieldCheck },
-  { name: 'Reports', path: '/reports', icon: BarChart3 },
+  { name: 'Audits', path: '/audits', icon: ShieldCheck, allowedRoles: ['ADMIN', 'ASSET_MANAGER'] },
+  { name: 'Reports', path: '/reports', icon: BarChart3, allowedRoles: ['ADMIN', 'ASSET_MANAGER'] },
   { name: 'Notifications', path: '/notifications', icon: Bell },
   { name: 'Organization', path: '/organization', icon: Settings },
 ];
@@ -29,7 +39,9 @@ export const Sidebar = () => {
   const location = useLocation();
   const { user } = useAuth();
 
-  const visibleNavigation = [...navigationItems];
+  const visibleNavigation = navigationItems.filter(
+    (item) => !item.allowedRoles || item.allowedRoles.includes(user?.role)
+  );
   if (user?.role === 'ADMIN') {
     visibleNavigation.push({ name: 'Admin Setup', path: '/admin/org-setup', icon: Shield });
   }

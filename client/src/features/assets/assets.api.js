@@ -29,26 +29,10 @@ export async function fetchAssetById(assetId) {
  * @param {FormData} formData
  */
 export async function createAsset(formData) {
-  const accessToken = sessionStorage.getItem('accessToken');
-  const headers = {};
-  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-
-  const response = await fetch('/api/v1/assets', {
+  return apiFetch('/assets', {
     method: 'POST',
-    headers,
-    credentials: 'include',
-    body: formData, // FormData handles multipart content-type automatically
+    body: formData, // apiFetch now handles FormData correctly
   });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(data.error?.message || 'Failed to create asset.');
-    error.status = response.status;
-    error.code = data.error?.code;
-    error.details = data.error?.details || [];
-    throw error;
-  }
-  return data;
 }
 
 /**

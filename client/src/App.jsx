@@ -34,15 +34,31 @@ export const App = () => {
             <Route element={<AppLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/assets" element={<AssetsPage />} />
-              <Route path="/allocations" element={<AllocationsPage />} />
+
+              {/* Asset & Allocation Management — ADMIN, ASSET_MANAGER, DEPT_HEAD only */}
+              <Route
+                element={<ProtectedLayout allowedRoles={['ADMIN', 'ASSET_MANAGER', 'DEPT_HEAD']} />}
+              >
+                <Route path="/assets" element={<AssetsPage />} />
+                <Route path="/allocations" element={<AllocationsPage />} />
+              </Route>
+
               <Route path="/bookings" element={<BookingCalendar />} />
               <Route path="/maintenance" element={<MaintenanceKanban />} />
-              <Route path="/audits" element={<AuditList />} />
-              <Route path="/reports" element={<AnalyticsDashboard />} />
+
+              {/* Audits & Reports — ADMIN, ASSET_MANAGER only */}
+              <Route element={<ProtectedLayout allowedRoles={['ADMIN', 'ASSET_MANAGER']} />}>
+                <Route path="/audits" element={<AuditList />} />
+                <Route path="/reports" element={<AnalyticsDashboard />} />
+              </Route>
+
               <Route path="/notifications" element={<NotificationFeed />} />
               <Route path="/organization" element={<Organization />} />
-              <Route path="/admin/org-setup" element={<OrganizationSetup />} />
+
+              {/* Admin Only Routes */}
+              <Route element={<ProtectedLayout allowedRoles={['ADMIN']} />}>
+                <Route path="/admin/org-setup" element={<OrganizationSetup />} />
+              </Route>
             </Route>
           </Route>
 

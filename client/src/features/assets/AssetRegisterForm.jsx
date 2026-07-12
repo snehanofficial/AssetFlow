@@ -40,7 +40,6 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
     register,
     handleSubmit,
     watch,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(registerSchema),
@@ -140,7 +139,7 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
     fd.append('customFields', JSON.stringify(customFieldValues));
     if (selectedFile) fd.append('photo', selectedFile);
 
-    mutation.mutate(fd);
+    await mutation.mutateAsync(fd);
   };
 
   const customSchema = selectedCategory?.customFieldsSchema ?? [];

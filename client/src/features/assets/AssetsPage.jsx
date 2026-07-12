@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AssetList } from './AssetList.jsx';
 import { AssetDetails } from './AssetDetails.jsx';
 import { AssetRegisterForm } from './AssetRegisterForm.jsx';
@@ -11,16 +12,17 @@ import { TransferInbox } from '../allocation/TransferInbox.jsx';
  * Orchestrates routing between AssetList, AssetDetails, and modals.
  */
 export const AssetsPage = () => {
-  const [view, setView] = useState('list'); // 'list' | 'detail'
-  const [selectedAssetId, setSelectedAssetId] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedAssetId = searchParams.get('id');
+  const view = selectedAssetId ? 'detail' : 'list';
+
   const [showRegister, setShowRegister] = useState(false);
   const [allocationTarget, setAllocationTarget] = useState(null); // { id, name, assetTag }
   const [returnTarget, setReturnTarget] = useState(null); // allocation record
   const [showTransferInbox, setShowTransferInbox] = useState(false);
 
   const handleViewDetail = (assetId) => {
-    setSelectedAssetId(assetId);
-    setView('detail');
+    setSearchParams({ id: assetId });
   };
 
   const handleAllocate = (asset) => {
@@ -29,6 +31,10 @@ export const AssetsPage = () => {
 
   const handleReturn = (allocation) => {
     setReturnTarget(allocation);
+  };
+
+  const handleBack = () => {
+    setSearchParams({});
   };
 
   return (
@@ -40,10 +46,7 @@ export const AssetsPage = () => {
       {view === 'detail' && selectedAssetId && (
         <AssetDetails
           assetId={selectedAssetId}
-          onBack={() => {
-            setView('list');
-            setSelectedAssetId(null);
-          }}
+          onBack={handleBack}
           onAllocate={handleAllocate}
           onReturn={handleReturn}
         />

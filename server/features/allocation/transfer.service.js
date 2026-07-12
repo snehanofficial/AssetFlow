@@ -18,93 +18,107 @@ import prisma from '../../database/client.js';
 export async function createTransferRequest(data, requestingUser) {
   const { assetId, targetEmployeeId, reason } = data;
 
-  // 1. Verify the asset exists and is currently ALLOCATED
-  const asset = await prisma.asset.findFirst({
-    where: { id: assetId, deletedAt: null },
-    include: {
-      allocations: {
-        where: { status: 'ACTIVE' },
-        take: 1,
-        include: {
-          employee: { select: { id: true, name: true } },
+  return await prisma.$transaction(async (tx) => {
+    // 1. Verify the asset exists and is currently ALLOCATED
+    const asset = await tx.asset.findFirst({
+      where: { id: assetId, deletedAt: null },
+      include: {
+        allocations: {
+          where: { status: 'ACTIVE' },
+          take: 1,
+          include: {
+            employee: { select: { id: true, name: true } },
+          },
         },
       },
-    },
+    });
+
+    if (!asset) {
+      const error = new Error('Asset not found.');
+      error.status = 404;
+      error.code = 'ASSET_NOT_FOUND';
+      throw error;
+    }
+
+    if (asset.status !== 'ALLOCATED' || asset.allocations.length === 0) {
+      const error = new Error('Asset must be currently allocated to initiate a transfer request.');
+      error.status = 400;
+      error.code = 'ASSET_NOT_ALLOCATED';
+      throw error;
+    }
+
+    // 2. Verify target employee exists and is active
+    const targetEmployee = await tx.employee.findFirst({
+      where: { id: targetEmployeeId, deletedAt: null },
+    });
+
+    if (!targetEmployee) {
+      const error = new Error('Target employee not found.');
+      error.status = 404;
+      error.code = 'EMPLOYEE_NOT_FOUND';
+      throw error;
+    }
+
+    if (targetEmployee.status !== 'ACTIVE') {
+      const error = new Error('Cannot transfer asset to an inactive employee.');
+      error.status = 400;
+      error.code = 'EMPLOYEE_INACTIVE';
+      throw error;
+    }
+
+    // DEPT_HEAD: restrict transfers to target employees in their own department
+    if (requestingUser.role === 'DEPT_HEAD') {
+      if (targetEmployee.departmentId !== requestingUser.departmentId) {
+        const error = new Error(
+          'Department Head can only request transfers to employees within their own department.'
+        );
+        error.status = 403;
+        error.code = 'FORBIDDEN_DEPARTMENT';
+        throw error;
+      }
+    }
+
+    // 3. Prevent transferring to the same current holder
+    const currentHolder = asset.allocations[0];
+    if (currentHolder.employee.id === targetEmployeeId) {
+      const error = new Error('Target employee is already the current holder of this asset.');
+      error.status = 400;
+      error.code = 'SAME_EMPLOYEE_TRANSFER';
+      throw error;
+    }
+
+    // 4. Check if there is already a pending transfer for this asset
+    const existingPending = await tx.transferRequest.findFirst({
+      where: { assetId, status: 'PENDING' },
+    });
+
+    if (existingPending) {
+      const error = new Error(
+        'A transfer request is already pending for this asset. Cancel or resolve it first.'
+      );
+      error.status = 409;
+      error.code = 'TRANSFER_ALREADY_PENDING';
+      throw error;
+    }
+
+    // 5. Create the transfer request
+    const transferRequest = await tx.transferRequest.create({
+      data: {
+        assetId,
+        requestedById: requestingUser.id,
+        targetEmployeeId,
+        status: 'PENDING',
+        reason: reason || null,
+      },
+      include: {
+        asset: { select: { id: true, assetTag: true, name: true } },
+        requestedBy: { select: { id: true, name: true, email: true } },
+        targetEmployee: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    return transferRequest;
   });
-
-  if (!asset) {
-    const error = new Error('Asset not found.');
-    error.status = 404;
-    error.code = 'ASSET_NOT_FOUND';
-    throw error;
-  }
-
-  if (asset.status !== 'ALLOCATED' || asset.allocations.length === 0) {
-    const error = new Error('Asset must be currently allocated to initiate a transfer request.');
-    error.status = 400;
-    error.code = 'ASSET_NOT_ALLOCATED';
-    throw error;
-  }
-
-  // 2. Verify target employee exists and is active
-  const targetEmployee = await prisma.employee.findFirst({
-    where: { id: targetEmployeeId, deletedAt: null },
-  });
-
-  if (!targetEmployee) {
-    const error = new Error('Target employee not found.');
-    error.status = 404;
-    error.code = 'EMPLOYEE_NOT_FOUND';
-    throw error;
-  }
-
-  if (targetEmployee.status !== 'ACTIVE') {
-    const error = new Error('Cannot transfer asset to an inactive employee.');
-    error.status = 400;
-    error.code = 'EMPLOYEE_INACTIVE';
-    throw error;
-  }
-
-  // 3. Prevent transferring to the same current holder
-  const currentHolder = asset.allocations[0];
-  if (currentHolder.employee.id === targetEmployeeId) {
-    const error = new Error('Target employee is already the current holder of this asset.');
-    error.status = 400;
-    error.code = 'SAME_EMPLOYEE_TRANSFER';
-    throw error;
-  }
-
-  // 4. Check if there is already a pending transfer for this asset
-  const existingPending = await prisma.transferRequest.findFirst({
-    where: { assetId, status: 'PENDING' },
-  });
-
-  if (existingPending) {
-    const error = new Error(
-      'A transfer request is already pending for this asset. Cancel or resolve it first.'
-    );
-    error.status = 409;
-    error.code = 'TRANSFER_ALREADY_PENDING';
-    throw error;
-  }
-
-  // 5. Create the transfer request
-  const transferRequest = await prisma.transferRequest.create({
-    data: {
-      assetId,
-      requestedById: requestingUser.id,
-      targetEmployeeId,
-      status: 'PENDING',
-      reason: reason || null,
-    },
-    include: {
-      asset: { select: { id: true, assetTag: true, name: true } },
-      requestedBy: { select: { id: true, name: true, email: true } },
-      targetEmployee: { select: { id: true, name: true, email: true } },
-    },
-  });
-
-  return transferRequest;
 }
 
 /**
@@ -221,34 +235,59 @@ export async function approveTransferRequest(transferId, requestingUser) {
  * @returns {Promise<TransferRequest>}
  */
 export async function rejectTransferRequest(transferId, data, requestingUser) {
-  const transfer = await prisma.transferRequest.findFirst({
-    where: { id: transferId, status: 'PENDING' },
+  return await prisma.$transaction(async (tx) => {
+    const transfer = await tx.transferRequest.findFirst({
+      where: { id: transferId, status: 'PENDING' },
+    });
+
+    if (!transfer) {
+      const error = new Error('Pending transfer request not found.');
+      error.status = 404;
+      error.code = 'TRANSFER_NOT_FOUND';
+      throw error;
+    }
+
+    // DEPT_HEAD: restrict rejection to transfers involving their own department
+    if (requestingUser.role === 'DEPT_HEAD') {
+      const targetEmp = await tx.employee.findUnique({
+        where: { id: transfer.targetEmployeeId },
+        select: { departmentId: true },
+      });
+      const reqEmp = await tx.employee.findUnique({
+        where: { id: transfer.requestedById },
+        select: { departmentId: true },
+      });
+      if (
+        targetEmp?.departmentId !== requestingUser.departmentId &&
+        reqEmp?.departmentId !== requestingUser.departmentId
+      ) {
+        const error = new Error(
+          'Department Head can only reject transfers involving their own department.'
+        );
+        error.status = 403;
+        error.code = 'FORBIDDEN_DEPARTMENT';
+        throw error;
+      }
+    }
+
+    const updated = await tx.transferRequest.update({
+      where: { id: transferId },
+      data: {
+        status: 'REJECTED',
+        approvedById: requestingUser.id,
+        approvedAt: new Date(),
+        reason: data.rejectReason || transfer.reason,
+      },
+      include: {
+        asset: { select: { id: true, assetTag: true, name: true } },
+        requestedBy: { select: { id: true, name: true } },
+        targetEmployee: { select: { id: true, name: true } },
+        approvedBy: { select: { id: true, name: true } },
+      },
+    });
+
+    return updated;
   });
-
-  if (!transfer) {
-    const error = new Error('Pending transfer request not found.');
-    error.status = 404;
-    error.code = 'TRANSFER_NOT_FOUND';
-    throw error;
-  }
-
-  const updated = await prisma.transferRequest.update({
-    where: { id: transferId },
-    data: {
-      status: 'REJECTED',
-      approvedById: requestingUser.id,
-      approvedAt: new Date(),
-      reason: data.rejectReason || transfer.reason,
-    },
-    include: {
-      asset: { select: { id: true, assetTag: true, name: true } },
-      requestedBy: { select: { id: true, name: true } },
-      targetEmployee: { select: { id: true, name: true } },
-      approvedBy: { select: { id: true, name: true } },
-    },
-  });
-
-  return updated;
 }
 
 /**
@@ -259,8 +298,8 @@ export async function rejectTransferRequest(transferId, data, requestingUser) {
  * @returns {Promise<{ records, total, page, limit }>}
  */
 export async function listTransferRequests(query, requestingUser) {
-  const page = parseInt(query.page, 10) || 1;
-  const limit = parseInt(query.limit, 10) || 20;
+  const page = Math.max(1, parseInt(query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 20));
   const skip = (page - 1) * limit;
 
   const where = {};

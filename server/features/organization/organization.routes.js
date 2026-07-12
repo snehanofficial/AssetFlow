@@ -627,6 +627,20 @@ router.delete(
         });
       }
 
+      // Block delete if there are active (non-deleted) assets in this category
+      const activeAssetsCount = await prisma.asset.count({
+        where: { categoryId: catId, deletedAt: null },
+      });
+      if (activeAssetsCount > 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'CATEGORY_HAS_ACTIVE_ASSETS',
+            message: `Cannot delete category: ${activeAssetsCount} active asset(s) are still assigned to it.`,
+          },
+        });
+      }
+
       const deleted = await prisma.assetCategory.update({
         where: { id: catId },
         data: { deletedAt: new Date() },

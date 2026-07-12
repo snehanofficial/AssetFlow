@@ -70,8 +70,8 @@ export const createAssetSchema = z.object({
  * REQ-AST-02: Query parameters for GET /assets.
  */
 export const listAssetsQuerySchema = z.object({
-  page: z.preprocess((v) => parseInt(v, 10), z.number().int().min(1).default(1)),
-  limit: z.preprocess((v) => parseInt(v, 10), z.number().int().min(1).max(100).default(20)),
+  page: z.coerce.number().int().min(1).catch(1),
+  limit: z.coerce.number().int().min(1).max(100).catch(20),
   search: z.string().trim().optional(),
   categoryId: z.string().uuid().optional(),
   status: z

@@ -14,7 +14,6 @@ import {
   RotateCcw,
   Clock,
   CheckCircle,
-  XCircle,
   AlertTriangle,
   QrCode,
   Info,
@@ -86,8 +85,6 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
 
   const asset = data?.data;
   const canManage = user?.role === 'ADMIN' || user?.role === 'ASSET_MANAGER';
-  const canViewTransfers =
-    user?.role === 'ADMIN' || user?.role === 'ASSET_MANAGER' || user?.role === 'DEPT_HEAD';
 
   if (isLoading) {
     return (
@@ -309,7 +306,7 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
                 <div key={idx} className="relative flex items-start gap-4 pl-2">
                   {/* Icon bubble */}
                   <div
-                    className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full border ${TIMELINE_COLORS[event.type] ?? 'border-border bg-surface'} flex-shrink-0`}
+                    className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full border ${TIMELINE_COLORS[event.type] ?? 'border-border bg-surface'} shrink-0`}
                   >
                     {TIMELINE_ICONS[event.type] ?? <Info size={12} className="text-text-muted" />}
                   </div>
@@ -345,7 +342,16 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
             <p className="text-xs text-text-muted">Scan to view this asset's details page</p>
           </div>
 
-          <AssetQRTag assetTag={asset.assetTag} assetName={asset.name} assetId={asset.id} />
+          <AssetQRTag
+            assetTag={asset.assetTag}
+            assetName={asset.name}
+            assetId={asset.id}
+            companyName="AssetFlow"
+            categoryName={asset.category?.name}
+            serialNumber={asset.serialNumber}
+            location={asset.location}
+            status={STATUS_CONFIG[asset.status]?.label ?? asset.status}
+          />
         </div>
       )}
     </div>

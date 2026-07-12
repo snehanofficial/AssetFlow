@@ -8,7 +8,6 @@ import {
   X,
   Check,
   XCircle,
-  Clock,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
@@ -49,13 +48,19 @@ function formatDate(date) {
  * TransferInbox
  * Full management view for transfer requests (list + create + approve/reject).
  */
-export const TransferInbox = () => {
+export const TransferInbox = ({ defaultTransferTarget, onClearDefault }) => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('PENDING');
   const [page, setPage] = useState(1);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(!!defaultTransferTarget?.assetId);
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    onClearDefault?.();
+  };
+
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const limit = 15;
@@ -321,10 +326,11 @@ export const TransferInbox = () => {
       {/* Create transfer modal */}
       {showCreateModal && (
         <TransferCreateModal
-          onClose={() => setShowCreateModal(false)}
+          defaultAssetId={defaultTransferTarget?.assetId}
+          onClose={handleCloseCreateModal}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ['transfers'] });
-            setShowCreateModal(false);
+            handleCloseCreateModal();
           }}
         />
       )}
@@ -333,15 +339,20 @@ export const TransferInbox = () => {
 };
 
 // Inner modal for creating transfer requests
-function TransferCreateModal({ onClose, onSuccess }) {
+function TransferCreateModal({ defaultAssetId, onClose, onSuccess }) {
   const { showToast } = useToast();
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(transferSchema),
+    defaultValues: {
+      assetId: defaultAssetId || '',
+      targetEmployeeId: '',
+      reason: '',
+    },
   });
 
   // Fetch allocated assets
@@ -383,7 +394,12 @@ function TransferCreateModal({ onClose, onSuccess }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="p-6 space-y-4">
+        <form
+          onSubmit={handleSubmit(async (d) => {
+            await mutation.mutateAsync(d);
+          })}
+          className="p-6 space-y-4"
+        >
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
               <Package size={12} /> Asset <span className="text-rose-400">*</span>
@@ -444,7 +460,7 @@ function TransferCreateModal({ onClose, onSuccess }) {
             </button>
             <button
               type="submit"
-              disabled={mutation.isPending}
+              disabled={isSubmitting || mutation.isPending}
               className="flex items-center gap-2 px-5 py-2 bg-purple-600 text-white text-xs font-semibold rounded-lg hover:bg-purple-500 disabled:opacity-50 transition-all"
             >
               {mutation.isPending ? (

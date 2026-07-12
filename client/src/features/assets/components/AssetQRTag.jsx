@@ -2,6 +2,15 @@ import { useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Printer, Tag, QrCode } from 'lucide-react';
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * AssetQRTag
  *
@@ -12,8 +21,22 @@ import { Printer, Tag, QrCode } from 'lucide-react';
  * @param {string} props.assetTag - e.g. "AF-0001"
  * @param {string} props.assetName - Display name of the asset
  * @param {string} props.assetId - UUID for building the QR payload URL
+ * @param {string} [props.companyName] - Organization/company name shown on label
+ * @param {string} [props.categoryName] - Asset category
+ * @param {string} [props.serialNumber] - Asset serial number
+ * @param {string} [props.location] - Asset location
+ * @param {string} [props.status] - Asset status
  */
-export const AssetQRTag = ({ assetTag, assetName, assetId }) => {
+export const AssetQRTag = ({
+  assetTag,
+  assetName,
+  assetId,
+  companyName = 'AssetFlow',
+  categoryName,
+  serialNumber,
+  location,
+  status,
+}) => {
   const printRef = useRef(null);
 
   // QR payload: link to the asset's detail page
@@ -23,58 +46,139 @@ export const AssetQRTag = ({ assetTag, assetName, assetId }) => {
     const printWindow = window.open('', '_blank', 'width=400,height=500');
     if (!printWindow) return;
 
-    const svgContent = printRef.current?.querySelector('svg')?.outerHTML ?? '';
+    const svgContent =
+      printRef.current?.querySelector('.asset-qr-svg')?.outerHTML ??
+      printRef.current?.querySelector('svg:last-of-type')?.outerHTML ??
+      '';
+    const primaryToken = getComputedStyle(document.documentElement)
+      .getPropertyValue('--primary')
+      .trim();
+    const primaryColor = primaryToken ? `hsl(${primaryToken})` : '#6d28d9';
+    const generatedAt = new Date().toLocaleString();
+    const details = [
+      { label: 'Asset Tag', value: assetTag },
+      { label: 'Asset Name', value: assetName },
+      { label: 'Category', value: categoryName },
+      { label: 'Serial Number', value: serialNumber },
+      { label: 'Location', value: location },
+      { label: 'Status', value: status },
+      { label: 'Asset URL', value: qrValue },
+      { label: 'Generated', value: generatedAt },
+    ]
+      .filter((item) => item.value)
+      .map(
+        (item) => `
+          <div class="detail-row">
+            <span class="detail-label">${escapeHtml(item.label)}</span>
+            <span class="detail-value">${escapeHtml(item.value)}</span>
+          </div>
+        `
+      )
+      .join('');
 
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Asset Label — ${assetTag}</title>
+          <title>Asset Label - ${escapeHtml(assetTag)}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
+            @page { size: auto; margin: 10mm; }
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
               display: flex;
               flex-direction: column;
               align-items: center;
-              justify-content: center;
-              min-height: 100vh;
+              justify-content: flex-start;
+              min-height: auto;
               background: #fff;
-              padding: 24px;
+              padding: 10px;
+              color: #111827;
             }
             .label {
-              border: 2px solid #000;
-              border-radius: 8px;
-              padding: 20px;
+              border: 2px solid ${primaryColor};
+              border-radius: 12px;
+              padding: 16px;
               display: flex;
               flex-direction: column;
               align-items: center;
-              gap: 12px;
-              max-width: 260px;
+              gap: 10px;
+              max-width: 360px;
               width: 100%;
             }
+            .header {
+              width: 100%;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 4px;
+              border-bottom: 1px solid #e5e7eb;
+              padding-bottom: 10px;
+            }
             .org-name {
-              font-size: 10px;
+              font-size: 12px;
               font-weight: 700;
-              letter-spacing: 2px;
+              letter-spacing: 1px;
               text-transform: uppercase;
-              color: #666;
+              color: ${primaryColor};
             }
             .asset-tag {
-              font-size: 22px;
-              font-weight: 900;
+              font-size: 18px;
+              font-weight: 800;
               font-family: monospace;
-              color: #000;
+              color: #0f172a;
               letter-spacing: 2px;
             }
             .asset-name {
-              font-size: 11px;
+              font-size: 12px;
+              font-weight: 600;
               text-align: center;
-              color: #333;
-              max-width: 200px;
+              color: #334155;
+              max-width: 280px;
+              line-height: 1.3;
+            }
+            .qr-frame {
+              border: 1px solid #e5e7eb;
+              border-radius: 10px;
+              padding: 10px;
+              background: #fff;
             }
             .qr-container svg {
               display: block;
+              width: 220px;
+              height: 220px;
+            }
+            .details {
+              width: 100%;
+              border-top: 1px solid #e5e7eb;
+              padding-top: 10px;
+              display: grid;
+              gap: 6px;
+            }
+            .detail-row {
+              display: grid;
+              grid-template-columns: 96px minmax(0, 1fr);
+              gap: 10px;
+              align-items: baseline;
+            }
+            .detail-label {
+              font-size: 10px;
+              letter-spacing: 0.5px;
+              text-transform: uppercase;
+              font-weight: 700;
+              color: #64748b;
+            }
+            .detail-value {
+              font-size: 11px;
+              font-weight: 600;
+              color: #0f172a;
+              overflow-wrap: anywhere;
+            }
+            .scan-note {
+              width: 100%;
+              font-size: 10px;
+              color: #64748b;
+              text-align: center;
             }
             @media print {
               body { background: #fff; }
@@ -84,12 +188,18 @@ export const AssetQRTag = ({ assetTag, assetName, assetId }) => {
         </head>
         <body>
           <div class="label">
-            <span class="org-name">AssetFlow</span>
-            <div class="qr-container">${svgContent}</div>
-            <span class="asset-tag">${assetTag}</span>
-            <span class="asset-name">${assetName}</span>
+            <div class="header">
+              <span class="org-name">${escapeHtml(companyName)}</span>
+              <span class="asset-tag">${escapeHtml(assetTag)}</span>
+              <span class="asset-name">${escapeHtml(assetName)}</span>
+            </div>
+            <div class="qr-frame">
+              <div class="qr-container">${svgContent}</div>
+            </div>
+            <p class="scan-note">Scan QR to open asset details in AssetFlow</p>
+            <div class="details">${details}</div>
           </div>
-          <script>window.onload = () => window.print();<\/script>
+          <script>window.onload = () => window.print();</script>
         </body>
       </html>
     `);
@@ -109,10 +219,11 @@ export const AssetQRTag = ({ assetTag, assetName, assetId }) => {
         </div>
 
         <QRCodeSVG
+          className="asset-qr-svg"
           value={qrValue}
-          size={140}
+          size={220}
           level="M"
-          includeMargin={false}
+          includeMargin={true}
           bgColor="#ffffff"
           fgColor="#0f0f0f"
         />

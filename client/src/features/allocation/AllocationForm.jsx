@@ -33,7 +33,7 @@ export const AllocationForm = ({ preselectedAsset, onClose, onSuccess, onTransfe
     handleSubmit,
     watch,
     setValue,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(allocationSchema),
     defaultValues: {
@@ -86,8 +86,8 @@ export const AllocationForm = ({ preselectedAsset, onClose, onSuccess, onTransfe
     },
   });
 
-  const onSubmit = (formData) => {
-    mutation.mutate({
+  const onSubmit = async (formData) => {
+    await mutation.mutateAsync({
       assetId: formData.assetId,
       employeeId: formData.employeeId,
       expectedReturnAt: formData.expectedReturnAt || null,
@@ -225,7 +225,7 @@ export const AllocationForm = ({ preselectedAsset, onClose, onSuccess, onTransfe
             </button>
             <button
               type="submit"
-              disabled={mutation.isPending}
+              disabled={isSubmitting || mutation.isPending}
               className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-all"
             >
               {mutation.isPending ? (

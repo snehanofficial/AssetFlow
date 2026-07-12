@@ -231,3 +231,73 @@ Full line-by-line inspection of every file against every requirement, business r
 
 All remaining requirements in `task-developer-a.md` were verified fully implemented:
 REQ-AST-01, REQ-AST-02 (minus dept filter — now fixed), REQ-AST-03, REQ-AST-04, REQ-AST-05, REQ-ALC-01 (minus CTA — now fixed), REQ-ALC-02, REQ-ALC-03, REQ-EMP-01 — all ✅.
+
+# Production Hardening
+
+## Module 1: Authentication & RBAC
+
+### Issues Found
+1. **Refresh Token Validation:** `verifyRefreshToken` did not check if the employee status was 'INACTIVE', allowing deactivated users to potentially refresh sessions.
+2. **Frontend `apiFetch` FormData Bug:** The custom `apiFetch` stringified `FormData` objects and forced `application/json` Content-Type, breaking multipart uploads and causing `createAsset` to bypass the central fetcher (and thus bypass token refresh logic).
+3. **Frontend Admin RBAC Bypass:** The `/admin/org-setup` route was not wrapped in a `ProtectedLayout` with `allowedRoles={['ADMIN']}`, making the UI accessible to any logged-in user.
+
+### Fixes Applied
+- **Backend:** Updated `auth.service.js` to ensure `record.employee.status !== 'INACTIVE'` during refresh token validation.
+- **Frontend:** Fixed `apiFetch` to properly handle `FormData` (skip stringifying and skip adding `application/json` headers). Refactored `createAsset` to use `apiFetch`.
+- **Frontend:** Wrapped the `/admin/org-setup` route in `App.jsx` with `<ProtectedLayout allowedRoles={['ADMIN']} />`.
+
+### Validation
+- Reviewed backend middleware and routes. Admin routes are correctly protected by `authorizeRoles('ADMIN')`.
+- Confirmed `apiFetch` logic correctness for standard vs FormData bodies.
+
+### Remaining Risks
+- None identified in Auth/RBAC so far. Continuing to audit routing and API contracts.
+
+## Module 2: Validation, Forms, & Database Transactions
+
+### Issues Found
+1. **Prisma Error Unhandled:** Malformed UUIDs in dynamic routes caused Prisma to throw `P2023` (Inconsistent column data), leading to an uncaught 500 error instead of a graceful 400 response. Foreign key violations (`P2003`) were also unhandled.
+2. **Double Submission Bugs in Forms:** `AssetRegisterForm.jsx`, `AllocationForm.jsx`, and `ReturnAssetModal.jsx` had synchronous `mutation.mutate` calls and incorrectly implemented `disabled` states for submit buttons, allowing rapid clicks to dispatch multiple duplicate requests.
+3. **Database Transaction Missing:** `createTransferRequest` and `rejectTransferRequest` in `transfer.service.js` made sequential DB calls without being wrapped in `prisma.$transaction`, risking race conditions under concurrent requests.
+
+### Fixes Applied
+- **Backend (Error Middleware):** Updated `error.middleware.js` to catch `P2023` (Inconsistent column data / malformed UUIDs) and `P2003` (Foreign Key Constraint) and return proper 400 JSON responses.
+- **Frontend (Forms):** Changed `mutation.mutate` to `await mutation.mutateAsync` in `AssetRegisterForm`, `AllocationForm`, and `ReturnAssetModal`. Made `onSubmit` async, and disabled submit buttons using `isSubmitting || mutation.isPending` to prevent double submissions.
+- **Backend (Database):** Wrapped `createTransferRequest` and `rejectTransferRequest` in `transfer.service.js` with `prisma.$transaction(async (tx) => { ... })` and updated all internal queries to use `tx` to guarantee atomic operations and avoid race conditions.
+
+### Validation
+- Validated `error.middleware.js` correctly maps Prisma's codes.
+- Checked other backend features (e.g., `allocation.service.js`, `asset.service.js`) and confirmed appropriate transaction boundaries and validation. 
+- Reviewed remaining forms (`Login`, `Signup`) and confirmed they correctly manage custom `submitting` state.
+
+### Next Steps
+- Continue auditing Backend Services for performance bottlenecks and Edge Case Integration Flows.
+
+## Module 3: Security, Routing & UX Integration (SaaS Audit)
+
+### Issues Found
+1. **Frontend ESLint Build Failures (Medium):** Multiple unused variables/imports (`useCallback`, `useMutation`, `useQueryClient`, `Clock`, `Filter`, `XCircle`, `setValue`) and an unnecessary escape character (`\/`) in `AssetQRTag.jsx` caused client build failures.
+2. **Broken Transfer UX Flow (High):** Selecting "Transfer" in the allocations page set `transferTarget` state, but didn't pass it or open the modal in `TransferInbox.jsx` (dead end).
+3. **Missing Deep-Linking / Page Refresh Support (Medium):** Selected asset detail view and active tab views were stored in component states, getting reset back to directory/defaults on page refresh.
+4. **Incorrect Client-Side Route Permissions (High):** Private administration/metrics pages (`/assets`, `/allocations`, `/audits`, `/reports`) were exposed in sidebar and accessible on client routing to `EMPLOYEE` role.
+5. **Pagination Crash on Negative values (Medium):** Backend `listAllocations` and `listTransferRequests` endpoints parsed `page`/`limit` directly from query without checking bounds, resulting in negative `skip` offsets that crashed Prisma queries.
+6. **Active Assets Category Delete Bypass (High):** Hard deletion restriction is handled on DB, but soft deletion of categories had no checks, allowing a user to delete a category that still had active assets assigned.
+7. **Privilege Escalation in Asset Detail endpoint (High):** `getAssetById` didn't verify department scope, allowing a `DEPT_HEAD` to bypass security and query details/timeline for any asset in the system.
+8. **Privilege Escalation in Transfer Requests (High):** `createTransferRequest` and `rejectTransferRequest` lacked department checks for `DEPT_HEAD` role, allowing them to initiate or reject transfers for employees outside their department.
+9. **Placeholder Dashboard Metrics (Medium):** The landing dashboard was hardcoded to show zero counts and chart placeholders instead of fetching live database statistics.
+
+### Fixes Applied
+- **Frontend (Build):** Cleaned up all unused variables/imports in `AllocationList.jsx`, `AllocationsPage.jsx`, `TransferInbox.jsx`, `AssetDetails.jsx`, and `AssetRegisterForm.jsx`. Fixed template string script tag in `AssetQRTag.jsx`.
+- **Frontend (UX/Routing):** Refactored `AssetsPage.jsx` and `AllocationsPage.jsx` to use `useSearchParams`, syncing active tab and selected asset ID to URL.
+- **Frontend (Sidebar):** Updated `Sidebar.jsx` and `App.jsx` to filter navigation links and client routes based on role permissions (`allowedRoles`).
+- **Frontend (Transfer flow):** Passed `transferTarget` and `onClearDefault` to `TransferInbox.jsx`, keying the inbox dynamically so it remounts and auto-opens the prefilled request form.
+- **Backend (Pagination):** Sanitized all `page`/`limit` inputs with `Math.max(1, ...)` and `Math.min(100, ...)` bounds in both service layers.
+- **Backend (Category check):** Added a count check to category soft delete in `organization.routes.js` to block deletion when active assets reference it.
+- **Backend (Auth boundaries):** Passed `req.user` to `getAssetById` and added department active allocation verification for `DEPT_HEAD` role. Add department verification checks in `createTransferRequest` and `rejectTransferRequest`.
+- **Integration (Dashboard):** Implemented `/api/v1/dashboard` backend metrics endpoint with role-scoped database counts. Wired client `Dashboard.jsx` using TanStack Query, rendering dynamic metrics and a real feed of up to 5 overdue returns.
+
+### Validation
+- **Lint Check:** Verified client and server linter tasks run and pass with 0 errors.
+- **Vite Build:** Verified production build `npm run build` succeeds completely without errors.
+- **Authentication/RBAC:** Confirmed `EMPLOYEE` users no longer see admin pages and are blocked at route-level.
+- **Pagination Safety:** Verified malformed query strings (e.g. `?page=-5` or `?page=abc`) default gracefully without crashing.

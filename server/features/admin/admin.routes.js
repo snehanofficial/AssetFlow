@@ -99,6 +99,23 @@ router.patch('/employees/:id/role', async (req, res, next) => {
       }
     }
 
+    // Prevent changing role if they are a Department Head
+    if (employee.role === 'DEPT_HEAD' && validated.role !== 'DEPT_HEAD') {
+      const isHead = await prisma.department.count({
+        where: { headId: targetId, deletedAt: null },
+      });
+      if (isHead > 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'EMPLOYEE_IS_DEPARTMENT_HEAD',
+            message:
+              'Cannot change role because the employee is currently a Department Head. Reassign the department head role first.',
+          },
+        });
+      }
+    }
+
     const updated = await prisma.employee.update({
       where: { id: targetId },
       data: { role: validated.role },

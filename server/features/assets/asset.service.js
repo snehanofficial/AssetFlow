@@ -215,7 +215,25 @@ export async function listAssets(query, requestingUser) {
  * @param {string} assetId
  * @returns {Promise<Asset & { timeline: Array }>}
  */
-export async function getAssetById(assetId) {
+export async function getAssetById(assetId, requestingUser) {
+  if (requestingUser && requestingUser.role === 'DEPT_HEAD') {
+    const activeAllocCount = await prisma.assetAllocation.count({
+      where: {
+        assetId,
+        status: 'ACTIVE',
+        employee: { departmentId: requestingUser.departmentId },
+      },
+    });
+    if (activeAllocCount === 0) {
+      const error = new Error(
+        'Access denied: You can only view assets allocated within your department.'
+      );
+      error.status = 403;
+      error.code = 'FORBIDDEN_DEPARTMENT';
+      throw error;
+    }
+  }
+
   const asset = await prisma.asset.findFirst({
     where: { id: assetId, deletedAt: null },
     include: {
@@ -326,7 +344,7 @@ export async function getAssetById(assetId) {
  * @param {Object} requestingUser
  * @returns {Promise<Asset>}
  */
-export async function updateAssetStatus(assetId, newStatus, requestingUser) {
+export async function updateAssetStatus(assetId, newStatus, _requestingUser) {
   const asset = await prisma.asset.findFirst({
     where: { id: assetId, deletedAt: null },
   });

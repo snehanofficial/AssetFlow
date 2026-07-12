@@ -112,7 +112,7 @@ router.get(
   authorizeRoles('ADMIN', 'ASSET_MANAGER', 'DEPT_HEAD'),
   async (req, res, next) => {
     try {
-      const asset = await getAssetById(req.params.id);
+      const asset = await getAssetById(req.params.id, req.user);
 
       return res.status(200).json({
         success: true,
