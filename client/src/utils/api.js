@@ -24,9 +24,14 @@ export async function apiFetch(endpoint, options = {}) {
 
   // Set default headers
   const headers = {
-    'Content-Type': 'application/json',
     ...options.headers,
   };
+
+  if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  } else if (!options.body && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   // Extract accessToken if stored in memory/sessionStorage
   const accessToken = sessionStorage.getItem('accessToken');
@@ -40,7 +45,7 @@ export async function apiFetch(endpoint, options = {}) {
     credentials: 'include', // Crucial for HTTP-only cookies
   };
 
-  if (options.body && typeof options.body === 'object') {
+  if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
     fetchOptions.body = JSON.stringify(options.body);
   }
 
