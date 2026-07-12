@@ -78,9 +78,3 @@ AssetFlow/
 - **Strict Database Invariants**: Guard against invalid states with database check constraints and partial unique indexes.
 - **JWT & HTTP-Only Cookies**: Secure authentication using rotated refresh tokens in HTTP-Only cookies.
 
----
-
-## 👥 Folder Ownership Matrix
-To eliminate git conflicts, code ownership is split:
-- **Developer 1**: `features/auth`, `features/admin` (Organization), `features/assets`, `features/allocation`, and `database/` core models.
-- **Developer 2**: `features/booking`, `features/maintenance`, `features/audit`, `features/reports`, `features/notifications`, and common UI components (`client/src/components/ui/`, `client/src/styles/index.css`).
