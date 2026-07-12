@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
+import { AuditDiscrepancies } from './AuditDiscrepancies.jsx';
 import apiFetch from '../../utils/api.js';
 import { useToast } from '../../components/common/Providers.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -516,6 +517,9 @@ export const AuditList = () => {
             </table>
           </div>
         </div>
+
+        {/* Discrepancies Summary panel */}
+        <AuditDiscrepancies items={cycleDetails.items} isClosed={!isCycleOpen} />
       </div>
     );
   }
