@@ -1,59 +1,32 @@
 import { Router } from 'express';
-import prisma from '../../database/client.js';
-
-const router = Router();
-
-/**
- * GET /api/v1/assets
- * Minimal listing endpoint supporting isBookable filter to unblock bookings calendar.
- */
-router.get('/', async (req, res, next) => {
-  try {
-    const { isBookable } = req.query;
-    const where = { deletedAt: null };
-
-    if (isBookable === 'true') {
-      where.isBookable = true;
-    }
-
-    const assets = await prisma.asset.findMany({
-      where,
-      include: {
-        category: {
-          select: {
-            name: true,
-          },
-        },
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: assets,
 import multer from 'multer';
+import prisma from '../../database/client.js';
 import authenticateSession from '../../middlewares/auth.middleware.js';
 import authorizeRoles from '../../middlewares/authorization.middleware.js';
 import { logMutation } from '../../services/audit.service.js';
 import storage from '../../services/storage/index.js';
 import {
   createAssetSchema,
+  updateAssetSchema,
   listAssetsQuerySchema,
   updateAssetStatusSchema,
 } from './asset.validators.js';
-import { createAsset, listAssets, getAssetById, updateAssetStatus } from './asset.service.js';
+import {
+  createAsset,
+  listAssets,
+  getAssetById,
+  updateAsset,
+  deleteAsset,
+  updateAssetStatus,
+} from './asset.service.js';
 
 const router = Router();
 
-// All routes require authentication
 router.use(authenticateSession);
 
-// Multer: in-memory buffer storage, 5MB limit, images only
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!file.mimetype.startsWith('image/')) {
       return cb(
@@ -64,25 +37,19 @@ const upload = multer({
         false
       );
     }
+
     cb(null, true);
   },
 });
 
-/**
- * POST /api/v1/assets
- * Register a new asset. Requires ADMIN or ASSET_MANAGER role.
- * Supports optional multipart photo upload.
- */
 router.post(
   '/',
   authorizeRoles('ADMIN', 'ASSET_MANAGER'),
   upload.single('photo'),
   async (req, res, next) => {
     try {
-      // Parse and validate body (handles both JSON and multipart string fields)
       const validated = createAssetSchema.parse(req.body);
 
-      // Handle optional photo upload
       let photoUrl = null;
       if (req.file) {
         const uploaded = await storage.uploadFile(
@@ -95,7 +62,6 @@ router.post(
 
       const asset = await createAsset(validated, photoUrl);
 
-      // Audit log
       await logMutation({
         actorId: req.user.id,
         actorEmail: req.user.email,
@@ -116,70 +82,99 @@ router.post(
   }
 );
 
-/**
- * GET /api/v1/assets
- * List assets with pagination, search, and filters.
- * ADMIN, ASSET_MANAGER, DEPT_HEAD only.
- * DEPT_HEAD sees only department assets.
- */
-router.get('/', authorizeRoles('ADMIN', 'ASSET_MANAGER', 'DEPT_HEAD'), async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
-    const query = listAssetsQuerySchema.parse(req.query);
-    const result = await listAssets(query, req.user);
+    const hasDirectoryQuery =
+      req.query.page !== undefined ||
+      req.query.limit !== undefined ||
+      req.query.search !== undefined ||
+      req.query.categoryId !== undefined ||
+      req.query.status !== undefined ||
+      req.query.departmentId !== undefined ||
+      req.query.location !== undefined;
+
+    if (hasDirectoryQuery) {
+      const query = listAssetsQuerySchema.parse(req.query);
+      const result = await listAssets(query, req.user);
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+    }
+
+    const where = { deletedAt: null };
+    if (req.query.isBookable === 'true') {
+      where.isBookable = true;
+    }
+
+    const assets = await prisma.asset.findMany({
+      where,
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
 
     return res.status(200).json({
       success: true,
-      data: result,
+      data: assets,
     });
   } catch (error) {
     next(error);
   }
 });
 
-/**
- * GET /api/v1/assets/:id
- * Fetches asset details with historical maintenance tickets.
- */
 router.get('/:id', async (req, res, next) => {
   try {
-    const asset = await prisma.asset.findUnique({
-      where: { id: req.params.id, deletedAt: null },
-      include: {
-        category: true,
-        maintenance: {
-          include: {
-            assignedTo: {
-              select: { id: true, name: true, email: true },
-            },
-            requestedBy: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-        },
-      },
-    });
+    const asset = await getAssetById(req.params.id, req.user);
 
-    if (!asset) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'ASSET_NOT_FOUND',
-          message: 'Asset not found.',
-        },
-      });
-    }
- * Retrieve full asset detail with timeline history.
- * ADMIN, ASSET_MANAGER, DEPT_HEAD only.
- */
-router.get(
+    return res.status(200).json({
+      success: true,
+      data: asset,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put(
   '/:id',
-  authorizeRoles('ADMIN', 'ASSET_MANAGER', 'DEPT_HEAD'),
+  authorizeRoles('ADMIN', 'ASSET_MANAGER'),
+  upload.single('photo'),
   async (req, res, next) => {
     try {
-      const asset = await getAssetById(req.params.id, req.user);
+      const validated = updateAssetSchema.parse(req.body);
+
+      let photoUrl;
+      if (req.file) {
+        const uploaded = await storage.uploadFile(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+        photoUrl = uploaded.url;
+      }
+
+      const { before, asset } = await updateAsset(req.params.id, validated, photoUrl);
+
+      await logMutation({
+        actorId: req.user.id,
+        actorEmail: req.user.email,
+        action: 'UPDATE',
+        tableName: 'Asset',
+        recordId: asset.id,
+        oldValue: before,
+        newValue: asset,
+        ipAddress: req.ip,
+      });
 
       return res.status(200).json({
         success: true,
@@ -191,11 +186,30 @@ router.get(
   }
 );
 
-/**
- * PATCH /api/v1/assets/:id/status
- * Manually update asset status. Enforces lifecycle transitions.
- * ADMIN, ASSET_MANAGER only.
- */
+router.delete('/:id', authorizeRoles('ADMIN', 'ASSET_MANAGER'), async (req, res, next) => {
+  try {
+    const { before, asset } = await deleteAsset(req.params.id);
+
+    await logMutation({
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      action: 'DELETE',
+      tableName: 'Asset',
+      recordId: asset.id,
+      oldValue: before,
+      newValue: asset,
+      ipAddress: req.ip,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Asset deleted successfully.',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.patch('/:id/status', authorizeRoles('ADMIN', 'ASSET_MANAGER'), async (req, res, next) => {
   try {
     const { status } = updateAssetStatusSchema.parse(req.body);

@@ -8,36 +8,19 @@ import { assertValidTransition } from './asset.lifecycle.js';
  * REQ-AST-01, REQ-AST-02, REQ-AST-03, REQ-AST-04
  */
 
-/**
- * Generates a unique asset tag in the format AF-XXXX.
- * Uses count-based sequential numbering padded to at least 4 digits.
- * Retries with a random suffix if a collision occurs.
- *
- * @returns {Promise<string>} The unique asset tag.
- */
 async function generateAssetTag() {
   const count = await prisma.asset.count();
   const base = count + 1;
   const padded = String(base).padStart(4, '0');
   const tag = `AF-${padded}`;
 
-  // Check for collision (e.g., if records were deleted and count regressed)
   const existing = await prisma.asset.findUnique({ where: { assetTag: tag } });
   if (!existing) return tag;
 
-  // Fallback: random 6-digit suffix
   const random = Math.floor(100000 + Math.random() * 900000);
   return `AF-${random}`;
 }
 
-/**
- * Validates that all required custom fields from the category schema
- * are present and match their declared type.
- *
- * @param {Array} schema - Category customFieldsSchema array.
- * @param {Object} values - Submitted customFields object.
- * @throws {Error} 400 if required fields are missing or mistyped.
- */
 function validateCustomFields(schema, values) {
   const errors = [];
 
@@ -73,18 +56,11 @@ function validateCustomFields(schema, values) {
   }
 }
 
-/**
- * Creates a new asset record.
- *
- * @param {Object} data - Validated asset creation payload.
- * @param {string|null} photoUrl - Uploaded photo URL (if any).
- * @returns {Promise<Asset>}
- */
-export async function createAsset(data, photoUrl = null) {
-  // 1. Verify category exists
-  const category = await prisma.assetCategory.findUnique({
-    where: { id: data.categoryId, deletedAt: null },
+async function getCategoryOrThrow(categoryId) {
+  const category = await prisma.assetCategory.findFirst({
+    where: { id: categoryId, deletedAt: null },
   });
+
   if (!category) {
     const error = new Error('The selected category does not exist.');
     error.status = 400;
@@ -92,27 +68,81 @@ export async function createAsset(data, photoUrl = null) {
     throw error;
   }
 
-  // 2. Validate custom fields against category schema
-  const schema = Array.isArray(category.customFieldsSchema) ? category.customFieldsSchema : [];
-  validateCustomFields(schema, data.customFields);
+  return category;
+}
 
-  // 3. Check serial number uniqueness
-  const duplicateSerial = await prisma.asset.findUnique({
-    where: { serialNumber: data.serialNumber },
+async function assertUniqueSerialNumber(serialNumber, assetIdToIgnore = null) {
+  const duplicateSerial = await prisma.asset.findFirst({
+    where: {
+      serialNumber,
+      id: assetIdToIgnore ? { not: assetIdToIgnore } : undefined,
+    },
   });
+
   if (duplicateSerial) {
     const error = new Error(
-      `Serial number '${data.serialNumber}' is already registered to another asset.`
+      `Serial number '${serialNumber}' is already registered to another asset.`
     );
     error.status = 400;
     error.code = 'DUPLICATE_SERIAL_NUMBER';
     throw error;
   }
+}
 
-  // 4. Generate asset tag
+async function assertAssetNotLockedInAudit(assetId) {
+  const activeAuditItem = await prisma.auditItem.findFirst({
+    where: {
+      assetId,
+      auditCycle: {
+        status: 'IN_PROGRESS',
+      },
+    },
+    select: { id: true },
+  });
+
+  if (activeAuditItem) {
+    const error = new Error(
+      'This asset cannot be modified because it is currently undergoing an active audit.'
+    );
+    error.status = 400;
+    error.code = 'ASSET_LOCKED_IN_AUDIT';
+    throw error;
+  }
+}
+
+async function getAssetOrThrow(assetId) {
+  const asset = await prisma.asset.findFirst({
+    where: { id: assetId, deletedAt: null },
+  });
+
+  if (!asset) {
+    const error = new Error('Asset not found.');
+    error.status = 404;
+    error.code = 'ASSET_NOT_FOUND';
+    throw error;
+  }
+
+  return asset;
+}
+
+async function enrichAssetWithCategory(assetId) {
+  return prisma.asset.findFirst({
+    where: { id: assetId, deletedAt: null },
+    include: {
+      category: { select: { id: true, name: true, customFieldsSchema: true } },
+    },
+  });
+}
+
+export async function createAsset(data, photoUrl = null) {
+  const category = await getCategoryOrThrow(data.categoryId);
+  const schema = Array.isArray(category.customFieldsSchema) ? category.customFieldsSchema : [];
+
+  validateCustomFields(schema, data.customFields);
+  await assertUniqueSerialNumber(data.serialNumber);
+
   const assetTag = await generateAssetTag();
 
-  // 5. Persist the asset
   const asset = await prisma.asset.create({
     data: {
       assetTag,
@@ -136,21 +166,12 @@ export async function createAsset(data, photoUrl = null) {
   return asset;
 }
 
-/**
- * Lists assets with pagination, search, and filtering.
- * DEPT_HEAD role is restricted to assets allocated within their department.
- *
- * @param {Object} query - Validated query parameters.
- * @param {Object} requestingUser - JWT payload { id, role, departmentId }.
- * @returns {Promise<{ records: Asset[], total: number, page: number, limit: number }>}
- */
 export async function listAssets(query, requestingUser) {
   const { page, limit, search, categoryId, status, departmentId, location } = query;
   const skip = (page - 1) * limit;
 
   const where = { deletedAt: null };
 
-  // Keyword search: tag, serial number, name, location
   if (search) {
     where.OR = [
       { assetTag: { contains: search, mode: 'insensitive' } },
@@ -164,7 +185,6 @@ export async function listAssets(query, requestingUser) {
   if (status) where.status = status;
   if (location && !search) where.location = { contains: location, mode: 'insensitive' };
 
-  // DEPT_HEAD: restrict to assets currently allocated to their department members
   if (requestingUser.role === 'DEPT_HEAD') {
     const deptId = departmentId || requestingUser.departmentId;
     if (deptId) {
@@ -176,7 +196,6 @@ export async function listAssets(query, requestingUser) {
       };
     }
   } else if (departmentId) {
-    // Admin/Asset Manager filtering by department
     where.allocations = {
       some: {
         status: 'ACTIVE',
@@ -208,13 +227,6 @@ export async function listAssets(query, requestingUser) {
   return { records, total, page, limit };
 }
 
-/**
- * Returns full asset detail with all historical events for timeline.
- * REQ-AST-04: Chronological history feed.
- *
- * @param {string} assetId
- * @returns {Promise<Asset & { timeline: Array }>}
- */
 export async function getAssetById(assetId, requestingUser) {
   if (requestingUser && requestingUser.role === 'DEPT_HEAD') {
     const activeAllocCount = await prisma.assetAllocation.count({
@@ -269,7 +281,16 @@ export async function getAssetById(assetId, requestingUser) {
     throw error;
   }
 
-  // Build chronological timeline
+  const isLockedInAudit = !!(await prisma.auditItem.findFirst({
+    where: {
+      assetId,
+      auditCycle: {
+        status: 'IN_PROGRESS',
+      },
+    },
+    select: { id: true },
+  }));
+
   const timeline = [];
 
   for (const alloc of asset.allocations) {
@@ -309,7 +330,7 @@ export async function getAssetById(assetId, requestingUser) {
       timeline.push({
         type: 'MAINTENANCE_RESOLVED',
         date: mx.completedAt,
-        description: `Maintenance resolved`,
+        description: 'Maintenance resolved',
         meta: { resolutionNotes: mx.resolutionNotes },
       });
     }
@@ -329,21 +350,103 @@ export async function getAssetById(assetId, requestingUser) {
     });
   }
 
-  // Sort timeline by date descending
   timeline.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  return { ...asset, timeline };
+  return { ...asset, isLockedInAudit, timeline };
 }
 
-/**
- * Updates asset status, enforcing lifecycle transition rules.
- * REQ-AST-03: Lifecycle state enforcement.
- *
- * @param {string} assetId
- * @param {string} newStatus
- * @param {Object} requestingUser
- * @returns {Promise<Asset>}
- */
+export async function updateAsset(assetId, data, photoUrl) {
+  const existingAsset = await getAssetOrThrow(assetId);
+  await assertAssetNotLockedInAudit(assetId);
+
+  const category = await getCategoryOrThrow(data.categoryId);
+  const schema = Array.isArray(category.customFieldsSchema) ? category.customFieldsSchema : [];
+
+  validateCustomFields(schema, data.customFields);
+  await assertUniqueSerialNumber(data.serialNumber, assetId);
+
+  await prisma.asset.update({
+    where: { id: assetId },
+    data: {
+      name: data.name,
+      serialNumber: data.serialNumber,
+      categoryId: data.categoryId,
+      condition: data.condition,
+      acquisitionDate: new Date(data.acquisitionDate),
+      acquisitionCost: data.acquisitionCost ?? null,
+      location: data.location,
+      isBookable: data.isBookable ?? false,
+      customFields: data.customFields ?? {},
+      photoUrl: photoUrl ?? existingAsset.photoUrl,
+    },
+  });
+
+  const asset = await enrichAssetWithCategory(assetId);
+  return { before: existingAsset, asset };
+}
+
+export async function deleteAsset(assetId) {
+  const existingAsset = await getAssetOrThrow(assetId);
+  await assertAssetNotLockedInAudit(assetId);
+
+  const [activeAllocationCount, activeBookingCount, activeMaintenanceCount, pendingTransferCount] =
+    await Promise.all([
+      prisma.assetAllocation.count({
+        where: { assetId, status: 'ACTIVE' },
+      }),
+      prisma.booking.count({
+        where: { assetId, status: { in: ['UPCOMING', 'ONGOING'] } },
+      }),
+      prisma.maintenanceRequest.count({
+        where: { assetId, status: { in: ['PENDING', 'APPROVED', 'IN_PROGRESS'] } },
+      }),
+      prisma.transferRequest.count({
+        where: { assetId, status: 'PENDING' },
+      }),
+    ]);
+
+  if (activeAllocationCount > 0) {
+    const error = new Error(
+      'This asset cannot be deleted while it has an active allocation. Return or transfer it first.'
+    );
+    error.status = 400;
+    error.code = 'ASSET_HAS_ACTIVE_ALLOCATIONS';
+    throw error;
+  }
+
+  if (activeBookingCount > 0) {
+    const error = new Error(
+      'This asset cannot be deleted while it has upcoming or ongoing bookings.'
+    );
+    error.status = 400;
+    error.code = 'ASSET_HAS_ACTIVE_BOOKINGS';
+    throw error;
+  }
+
+  if (activeMaintenanceCount > 0) {
+    const error = new Error(
+      'This asset cannot be deleted while it has active maintenance requests.'
+    );
+    error.status = 400;
+    error.code = 'ASSET_HAS_ACTIVE_MAINTENANCE';
+    throw error;
+  }
+
+  if (pendingTransferCount > 0) {
+    const error = new Error('This asset cannot be deleted while a transfer request is pending.');
+    error.status = 400;
+    error.code = 'ASSET_HAS_PENDING_TRANSFERS';
+    throw error;
+  }
+
+  const asset = await prisma.asset.update({
+    where: { id: assetId },
+    data: { deletedAt: new Date() },
+  });
+
+  return { before: existingAsset, asset };
+}
+
 export async function updateAssetStatus(assetId, newStatus, _requestingUser) {
   const asset = await prisma.asset.findFirst({
     where: { id: assetId, deletedAt: null },
@@ -356,7 +459,6 @@ export async function updateAssetStatus(assetId, newStatus, _requestingUser) {
     throw error;
   }
 
-  // Enforce lifecycle transition
   assertValidTransition(asset.status, newStatus);
 
   const updated = await prisma.asset.update({
@@ -367,4 +469,11 @@ export async function updateAssetStatus(assetId, newStatus, _requestingUser) {
   return updated;
 }
 
-export default { createAsset, listAssets, getAssetById, updateAssetStatus };
+export default {
+  createAsset,
+  listAssets,
+  getAssetById,
+  updateAsset,
+  deleteAsset,
+  updateAssetStatus,
+};

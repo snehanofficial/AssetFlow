@@ -6,11 +6,11 @@ import { z } from 'zod';
  */
 
 /**
- * Schema for creating a new asset.
+ * Schema for creating or updating an asset.
  * Core fields are validated; customFields is passed through as-is
  * (category-level custom field validation happens in the service layer).
  */
-export const createAssetSchema = z.object({
+const assetMutationShape = {
   name: z
     .string({ required_error: 'Asset name is required.' })
     .trim()
@@ -63,7 +63,10 @@ export const createAssetSchema = z.object({
     }
     return val ?? {};
   }, z.record(z.unknown()).default({})),
-});
+};
+
+export const createAssetSchema = z.object(assetMutationShape);
+export const updateAssetSchema = z.object(assetMutationShape);
 
 /**
  * Schema for filtering the asset directory.
@@ -100,4 +103,9 @@ export const updateAssetStatusSchema = z.object({
   ),
 });
 
-export default { createAssetSchema, listAssetsQuerySchema, updateAssetStatusSchema };
+export default {
+  createAssetSchema,
+  updateAssetSchema,
+  listAssetsQuerySchema,
+  updateAssetStatusSchema,
+};

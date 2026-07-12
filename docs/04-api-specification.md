@@ -292,10 +292,18 @@ Security is enforced at the route handler level using two Express middleware blo
 #### 3.3.3 Edit Asset Details
 *   **HTTP Method / Route**: `PUT /api/v1/assets/:id`
 *   **Required Role(s)**: `ADMIN`, `ASSET_MANAGER`
-*   **Business Rules Reference**: BR-AUDIT-05 (Blocks asset edits while its category/department is under an active audit cycle).
-*   **Database Entity**: `Asset`, `AuditCycle`.
+*   **Request Body**: Accepts the same core editable fields as asset registration, with optional multipart photo replacement.
+*   **Business Rules Reference**: BR-AUDIT-05 (Blocks asset edits while the asset is under an active audit cycle), BR-ASSET-04 (Revalidates category-specific custom fields), BR-ASSET-01 (Preserves serial uniqueness).
+*   **Database Entity**: `Asset`, `AssetCategory`, `AuditCycle`.
 
-#### 3.3.4 Decommission Asset
+#### 3.3.4 Delete Asset
+*   **HTTP Method / Route**: `DELETE /api/v1/assets/:id`
+*   **Required Role(s)**: `ADMIN`, `ASSET_MANAGER`
+*   **Behavior**: Performs a guarded soft delete by setting `deletedAt`.
+*   **Business Rules Reference**: BR-AUDIT-05 (Blocks asset deletion during active audits). Deletion is also blocked while the asset still has active allocations, upcoming or ongoing bookings, active maintenance, or pending transfer requests.
+*   **Database Entity**: `Asset`, `Allocation`, `Booking`, `MaintenanceRequest`, `TransferRequest`.
+
+#### 3.3.5 Decommission Asset
 *   **HTTP Method / Route**: `POST /api/v1/assets/:id/decommission`
 *   **Required Role(s)**: `ADMIN`, `ASSET_MANAGER`
 *   **Request Body**:
@@ -544,3 +552,4 @@ Security is enforced at the route handler level using two Express middleware blo
 *   **Response (HTTP 200)**: Returns role-scoped metrics, including total assets, bookable count, active allocations, pending maintenance count, active audit cycles, and overdue return counts.
 *   **Business Rules Reference**: BR-ALLOC-05.
 *   **Database Entity**: Aggregates data from `Asset`, `Allocation`, `MaintenanceRequest`, `AuditCycle`.
+

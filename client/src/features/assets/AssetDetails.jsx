@@ -17,6 +17,9 @@ import {
   AlertTriangle,
   QrCode,
   Info,
+  Pencil,
+  Trash2,
+  Lock,
 } from 'lucide-react';
 import { fetchAssetById } from './assets.api.js';
 import { AssetQRTag } from './components/AssetQRTag.jsx';
@@ -73,7 +76,7 @@ function formatCurrency(amount) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 }
 
-export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
+export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn, onEdit, onDelete }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -111,10 +114,10 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
 
   const statusCfg = STATUS_CONFIG[asset.status] ?? { label: asset.status, className: '' };
   const activeAlloc = asset.allocations?.find((a) => a.status === 'ACTIVE');
+  const isLockedInAudit = Boolean(asset.isLockedInAudit);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-start gap-4">
         <button
           onClick={onBack}
@@ -130,6 +133,12 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
             >
               {statusCfg.label}
             </span>
+            {isLockedInAudit && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-300">
+                <Lock size={11} />
+                Audit locked
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3 mt-1">
             <span className="flex items-center gap-1 text-xs font-mono text-primary font-semibold">
@@ -141,9 +150,8 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
           </div>
         </div>
 
-        {/* Action buttons */}
         {canManage && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             {asset.status === 'AVAILABLE' && onAllocate && (
               <button
                 onClick={() => onAllocate(asset)}
@@ -162,11 +170,39 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
                 Return Asset
               </button>
             )}
+            {onEdit && (
+              <button
+                onClick={() => onEdit(asset)}
+                disabled={isLockedInAudit}
+                title={isLockedInAudit ? 'Asset is locked due to active audit.' : 'Edit asset'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border text-text-secondary hover:text-text-primary hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <Pencil size={12} />
+                Edit
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={() => onDelete(asset)}
+                disabled={isLockedInAudit}
+                title={isLockedInAudit ? 'Asset is locked due to active audit.' : 'Delete asset'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <Trash2 size={12} />
+                Delete
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Tabs */}
+      {isLockedInAudit && (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+          This asset is currently included in an active audit cycle. Edit and delete actions are
+          temporarily disabled.
+        </div>
+      )}
+
       <div className="flex items-center gap-1 border-b border-border/50">
         {[
           { id: 'overview', label: 'Overview', icon: <Info size={13} /> },
@@ -188,10 +224,8 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
         ))}
       </div>
 
-      {/* Tab Content */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Core details */}
           <div className="lg:col-span-2 space-y-4">
             {asset.photoUrl && (
               <div className="card-elevation overflow-hidden rounded-xl">
@@ -223,7 +257,6 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
               </div>
             </div>
 
-            {/* Custom fields */}
             {asset.customFields && Object.keys(asset.customFields).length > 0 && (
               <div className="card-elevation p-5 space-y-4">
                 <h2 className="text-sm font-semibold text-text-primary">Custom Attributes</h2>
@@ -236,9 +269,7 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
             )}
           </div>
 
-          {/* Sidebar: current holder + category */}
           <div className="space-y-4">
-            {/* Current holder */}
             <div className="card-elevation p-5 space-y-3">
               <h2 className="text-sm font-semibold text-text-primary flex items-center gap-2">
                 <User size={14} className="text-text-muted" />
@@ -258,7 +289,7 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
                       className={`text-xs mt-1 ${new Date(activeAlloc.expectedReturnAt) < new Date() ? 'text-rose-400 font-medium' : 'text-text-muted'}`}
                     >
                       Return by {formatDate(activeAlloc.expectedReturnAt)}
-                      {new Date(activeAlloc.expectedReturnAt) < new Date() && ' ⚠ Overdue'}
+                      {new Date(activeAlloc.expectedReturnAt) < new Date() && ' Overdue'}
                     </p>
                   )}
                 </div>
@@ -267,7 +298,6 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
               )}
             </div>
 
-            {/* Category info */}
             <div className="card-elevation p-5 space-y-3">
               <h2 className="text-sm font-semibold text-text-primary flex items-center gap-2">
                 <Package size={14} className="text-text-muted" />
@@ -299,19 +329,16 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
             </div>
           ) : (
             <div className="relative space-y-3">
-              {/* Vertical line */}
               <div className="absolute left-5 top-6 bottom-0 w-px bg-border/50" />
 
               {asset.timeline.map((event, idx) => (
                 <div key={idx} className="relative flex items-start gap-4 pl-2">
-                  {/* Icon bubble */}
                   <div
                     className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full border ${TIMELINE_COLORS[event.type] ?? 'border-border bg-surface'} shrink-0`}
                   >
                     {TIMELINE_ICONS[event.type] ?? <Info size={12} className="text-text-muted" />}
                   </div>
 
-                  {/* Content */}
                   <div
                     className={`flex-1 p-3 rounded-lg border ${TIMELINE_COLORS[event.type] ?? 'border-border bg-surface/30'}`}
                   >
@@ -358,7 +385,6 @@ export const AssetDetails = ({ assetId, onBack, onAllocate, onReturn }) => {
   );
 };
 
-// Helper component
 function DetailRow({ icon, label, value }) {
   return (
     <div className="space-y-0.5">
