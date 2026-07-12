@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useMemo, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Upload, Package, AlertCircle, CheckCircle } from 'lucide-react';
-import { fetchCategories, createAsset } from './assets.api.js';
+import { X, Upload, Package, AlertCircle, CheckCircle, Pencil } from 'lucide-react';
+import { fetchCategories, createAsset, updateAsset } from './assets.api.js';
 import { useToast } from '../../components/common/Providers.jsx';
 
-// Client-side validation schema
-const registerSchema = z.object({
+const assetSchema = z.object({
   name: z.string().min(2, 'Asset name must be at least 2 characters.').max(255),
   categoryId: z.string().uuid('Please select a valid category.'),
   serialNumber: z.string().min(1, 'Serial number is required.').max(255),
@@ -26,61 +25,84 @@ const CONDITION_OPTIONS = [
   { value: 'POOR', label: 'Poor' },
 ];
 
-export const AssetRegisterForm = ({ onClose, onSuccess }) => {
+function formatDateInput(date) {
+  if (!date) return '';
+  return new Date(date).toISOString().slice(0, 10);
+}
+
+export const AssetRegisterForm = ({ asset = null, onClose, onSuccess }) => {
+  const isEditMode = Boolean(asset?.id);
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const [selectedFile, setSelectedFile] = useState(null);
-  const [filePreview, setFilePreview] = useState(null);
+  const [filePreview, setFilePreview] = useState(asset?.photoUrl ?? null);
   const [fileError, setFileError] = useState('');
-  const [customFieldValues, setCustomFieldValues] = useState({});
+  const [customFieldValues, setCustomFieldValues] = useState(asset?.customFields ?? {});
   const [customFieldErrors, setCustomFieldErrors] = useState({});
-  const [selectedCategory, setSelectedCategory] = useState(null);
 
   const {
     register,
+    control,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(assetSchema),
     defaultValues: {
-      condition: 'GOOD',
-      isBookable: false,
+      name: asset?.name ?? '',
+      categoryId: asset?.categoryId ?? '',
+      serialNumber: asset?.serialNumber ?? '',
+      location: asset?.location ?? '',
+      acquisitionDate: formatDateInput(asset?.acquisitionDate),
+      acquisitionCost:
+        asset?.acquisitionCost !== null && asset?.acquisitionCost !== undefined
+          ? String(asset.acquisitionCost)
+          : '',
+      condition: asset?.condition ?? 'GOOD',
+      isBookable: asset?.isBookable ?? false,
     },
   });
 
-  const watchedCategoryId = watch('categoryId');
+  const watchedCategoryId = useWatch({ control, name: 'categoryId' });
 
-  // Fetch categories
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories,
     staleTime: 5 * 60 * 1000,
   });
-  const categories = categoriesData?.data?.records ?? categoriesData?.data ?? [];
 
-  // Update selected category for dynamic fields
-  useEffect(() => {
-    const cat = categories.find((c) => c.id === watchedCategoryId);
-    setSelectedCategory(cat || null);
-    setCustomFieldValues({});
-    setCustomFieldErrors({});
-  }, [watchedCategoryId, categories]);
+  const categories = useMemo(
+    () => categoriesData?.data?.records ?? categoriesData?.data ?? [],
+    [categoriesData]
+  );
 
-  // Mutation
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.id === watchedCategoryId) ?? null,
+    [categories, watchedCategoryId]
+  );
+
   const mutation = useMutation({
-    mutationFn: createAsset,
+    mutationFn: async (formData) => {
+      if (isEditMode) {
+        return updateAsset(asset.id, formData);
+      }
+      return createAsset(formData);
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['assets'] });
+      if (data?.data?.id) {
+        queryClient.invalidateQueries({ queryKey: ['asset', data.data.id] });
+      }
       showToast(
-        `Asset "${data.data.name}" (${data.data.assetTag}) registered successfully!`,
+        isEditMode
+          ? `Asset "${data.data.name}" updated successfully.`
+          : `Asset "${data.data.name}" (${data.data.assetTag}) registered successfully!`,
         'success'
       );
       onSuccess?.(data.data);
       onClose?.();
     },
     onError: (err) => {
-      showToast(err.message || 'Failed to register asset.', 'error');
+      showToast(err.message || `Failed to ${isEditMode ? 'update' : 'register'} asset.`, 'error');
     },
   });
 
@@ -89,20 +111,20 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
     setFileError('');
     if (!file) {
       setSelectedFile(null);
-      setFilePreview(null);
+      setFilePreview(asset?.photoUrl ?? null);
       return;
     }
 
     if (!file.type.startsWith('image/')) {
       setFileError('Only image files are allowed.');
       setSelectedFile(null);
-      setFilePreview(null);
+      setFilePreview(asset?.photoUrl ?? null);
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
       setFileError('File size must be under 5MB.');
       setSelectedFile(null);
-      setFilePreview(null);
+      setFilePreview(asset?.photoUrl ?? null);
       return;
     }
     setSelectedFile(file);
@@ -113,6 +135,7 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
     const schema = selectedCategory?.customFieldsSchema ?? [];
     const errs = {};
     let valid = true;
+
     for (const field of schema) {
       const val = customFieldValues[field.name];
       if (field.required && (val === undefined || val === null || val === '')) {
@@ -120,6 +143,7 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
         valid = false;
       }
     }
+
     setCustomFieldErrors(errs);
     return valid;
   };
@@ -147,11 +171,16 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-2xl bg-background border border-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-        {/* Modal header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
           <div className="flex items-center gap-2">
-            <Package size={18} className="text-primary" />
-            <h2 className="text-base font-semibold text-text-primary">Register New Asset</h2>
+            {isEditMode ? (
+              <Pencil size={18} className="text-primary" />
+            ) : (
+              <Package size={18} className="text-primary" />
+            )}
+            <h2 className="text-base font-semibold text-text-primary">
+              {isEditMode ? 'Edit Asset' : 'Register New Asset'}
+            </h2>
           </div>
           <button
             onClick={onClose}
@@ -161,10 +190,8 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-6">
-            {/* Core fields */}
             <div className="space-y-4">
               <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide">
                 Core Details
@@ -241,11 +268,11 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
                 </FormField>
 
                 <FormField label="Shared / Bookable">
-                  <label className="flex items-center gap-2 cursor-pointer mt-1">
+                  <label className="mt-1 flex cursor-pointer items-center gap-2">
                     <input
                       type="checkbox"
                       {...register('isBookable')}
-                      className="rounded border-border w-4 h-4 accent-primary"
+                      className="h-4 w-4 rounded border-border accent-primary"
                     />
                     <span className="text-xs text-text-secondary">
                       Allow employees to book this asset
@@ -255,11 +282,10 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
               </div>
             </div>
 
-            {/* Dynamic custom fields based on category schema */}
             {customSchema.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide flex items-center gap-2">
-                  <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[10px]">
+                <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
                     {selectedCategory?.name}
                   </span>
                   Custom Attributes
@@ -274,7 +300,13 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
                     >
                       {field.type === 'boolean' ? (
                         <select
-                          value={customFieldValues[field.name] ?? ''}
+                          value={
+                            customFieldValues[field.name] === true
+                              ? 'true'
+                              : customFieldValues[field.name] === false
+                                ? 'false'
+                                : ''
+                          }
                           onChange={(e) =>
                             setCustomFieldValues((prev) => ({
                               ...prev,
@@ -295,7 +327,11 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
                             setCustomFieldValues((prev) => ({
                               ...prev,
                               [field.name]:
-                                field.type === 'number' ? Number(e.target.value) : e.target.value,
+                                field.type === 'number'
+                                  ? e.target.value === ''
+                                    ? ''
+                                    : Number(e.target.value)
+                                  : e.target.value,
                             }))
                           }
                           placeholder={field.type === 'number' ? '0' : `Enter ${field.name}...`}
@@ -308,47 +344,50 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
               </div>
             )}
 
-            {/* Photo upload */}
             <div className="space-y-2">
-              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide">
-                Photo (Optional)
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Photo {isEditMode ? '(Upload to replace current image)' : '(Optional)'}
               </h3>
               <div
-                className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${fileError ? 'border-rose-500/40' : 'border-border/50 hover:border-primary/30'}`}
+                className={`relative rounded-xl border-2 border-dashed p-6 transition-all ${
+                  fileError ? 'border-rose-500/40' : 'border-border/50 hover:border-primary/30'
+                }`}
               >
                 {filePreview ? (
                   <div className="flex items-center gap-4">
                     <img
                       src={filePreview}
                       alt="Preview"
-                      className="w-20 h-20 object-cover rounded-lg"
+                      className="h-20 w-20 rounded-lg object-cover"
                     />
                     <div className="flex-1">
-                      <p className="text-xs font-medium text-text-primary">{selectedFile?.name}</p>
-                      <p className="text-[10px] text-text-muted">
-                        {(selectedFile?.size / 1024 / 1024).toFixed(2)} MB
+                      <p className="text-xs font-medium text-text-primary">
+                        {selectedFile?.name ?? 'Current asset photo'}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedFile(null);
-                          setFilePreview(null);
-                          setFileError('');
-                        }}
-                        className="mt-1 text-[10px] text-rose-400 hover:text-rose-300 transition-colors"
-                      >
-                        Remove
-                      </button>
+                      {selectedFile && (
+                        <p className="text-[10px] text-text-muted">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      )}
+                      <label className="mt-1 inline-flex cursor-pointer text-[10px] text-primary transition-colors hover:text-primary/80">
+                        Replace image
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="sr-only"
+                        />
+                      </label>
                     </div>
                   </div>
                 ) : (
-                  <label className="flex flex-col items-center gap-2 cursor-pointer">
+                  <label className="flex cursor-pointer flex-col items-center gap-2">
                     <Upload size={20} className="text-text-muted" />
-                    <span className="text-xs text-text-muted text-center">
+                    <span className="text-center text-xs text-text-muted">
                       Drop an image here or{' '}
                       <span className="text-primary underline">click to browse</span>
                     </span>
-                    <span className="text-[10px] text-text-muted">PNG, JPG, WEBP — max 5MB</span>
+                    <span className="text-[10px] text-text-muted">PNG, JPG, WEBP - max 5MB</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -366,38 +405,36 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
               )}
             </div>
 
-            {/* Submission error */}
             {mutation.isError && (
-              <div className="flex items-start gap-2 p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg">
-                <AlertCircle size={14} className="text-rose-400 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 p-3">
+                <AlertCircle size={14} className="mt-0.5 flex-shrink-0 text-rose-400" />
                 <p className="text-xs text-rose-300">{mutation.error?.message}</p>
               </div>
             )}
           </div>
 
-          {/* Footer actions */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border flex-shrink-0 bg-background">
+          <div className="flex items-center justify-end gap-3 border-t border-border bg-background px-6 py-4 flex-shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-text-secondary hover:text-text-primary border border-border rounded-lg hover:bg-surface transition-all"
+              className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-text-secondary transition-all hover:bg-surface hover:text-text-primary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || mutation.isPending}
-              className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/20"
+              className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {mutation.isPending ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Registering...
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  {isEditMode ? 'Saving...' : 'Registering...'}
                 </>
               ) : (
                 <>
                   <CheckCircle size={13} />
-                  Register Asset
+                  {isEditMode ? 'Save Changes' : 'Register Asset'}
                 </>
               )}
             </button>
@@ -408,7 +445,6 @@ export const AssetRegisterForm = ({ onClose, onSuccess }) => {
   );
 };
 
-// Helpers
 function inputClass(error) {
   return `w-full bg-background border ${error ? 'border-rose-500/50' : 'border-border'} rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all`;
 }
@@ -416,9 +452,9 @@ function inputClass(error) {
 function FormField({ label, children, error, required }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium text-text-secondary flex items-center gap-0.5">
+      <label className="flex items-center gap-0.5 text-xs font-medium text-text-secondary">
         {label}
-        {required && <span className="text-rose-400 ml-0.5">*</span>}
+        {required && <span className="ml-0.5 text-rose-400">*</span>}
       </label>
       {children}
       {error && (
