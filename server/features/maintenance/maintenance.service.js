@@ -1,5 +1,6 @@
 import prisma from '../../database/client.js';
 import { logMutation } from '../../services/audit.service.js';
+import { publishNotification } from '../notifications/notification.service.js';
 
 /**
  * Fetch list of maintenance requests.
@@ -211,6 +212,26 @@ export async function approveMaintenanceRequest({ id, assignedToId, user, ipAddr
     ipAddress,
   });
 
+  // Notify requester
+  await publishNotification({
+    employeeId: updated.requestedById,
+    type: 'MAINTENANCE_APPROVED',
+    title: 'Repair Ticket Approved',
+    message: `Your repair request for ${updated.asset.name} (${updated.asset.assetTag}) is approved and assigned to a technician.`,
+    linkUrl: '/maintenance',
+  }).catch(() => {});
+
+  // Notify assigned technician (if different)
+  if (updated.assignedToId && updated.assignedToId !== updated.requestedById) {
+    await publishNotification({
+      employeeId: updated.assignedToId,
+      type: 'MAINTENANCE_APPROVED',
+      title: 'New Maintenance Assignment',
+      message: `You have been assigned to repair ${updated.asset.name} (${updated.asset.assetTag}).`,
+      linkUrl: '/maintenance',
+    }).catch(() => {});
+  }
+
   return updated;
 }
 
@@ -283,6 +304,15 @@ export async function rejectMaintenanceRequest({ id, reason, user, ipAddress }) 
     newValue: { id: updated.id, status: 'REJECTED', resolutionNotes: reason },
     ipAddress,
   });
+
+  // Notify requester of rejection
+  await publishNotification({
+    employeeId: updated.requestedById,
+    type: 'MAINTENANCE_REJECTED',
+    title: 'Repair Ticket Rejected',
+    message: `Your repair request for asset ID ${updated.assetId} has been rejected. Reason: ${reason}`,
+    linkUrl: '/maintenance',
+  }).catch(() => {});
 
   return updated;
 }
@@ -372,6 +402,15 @@ export async function resolveMaintenanceRequest({ id, resolutionNotes, user, ipA
     newValue: { id: updated.id, status: 'RESOLVED', resolutionNotes },
     ipAddress,
   });
+
+  // Notify requester of resolution
+  await publishNotification({
+    employeeId: updated.requestedById,
+    type: 'MAINTENANCE_RESOLVED',
+    title: 'Repair Ticket Resolved',
+    message: `The repair request for ${updated.asset.name} (${updated.asset.assetTag}) has been resolved. Notes: ${resolutionNotes}`,
+    linkUrl: '/maintenance',
+  }).catch(() => {});
 
   return updated;
 }

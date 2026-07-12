@@ -1,5 +1,6 @@
 import prisma from '../../database/client.js';
 import { logMutation } from '../../services/audit.service.js';
+import { publishNotification } from '../notifications/notification.service.js';
 
 /**
  * Lists all audit cycles.
@@ -215,6 +216,17 @@ export async function createAuditCycle({
     newValue: cycle,
     ipAddress,
   });
+
+  // Send notifications to assigned auditors
+  for (const auditorId of auditorIds) {
+    await publishNotification({
+      employeeId: auditorId,
+      type: 'AUDIT_ASSIGNED',
+      title: 'New Audit Cycle Assigned',
+      message: `You have been assigned as auditor for campaign: "${cycle.title}".`,
+      linkUrl: '/audits',
+    }).catch(() => {});
+  }
 
   return cycle;
 }

@@ -4,8 +4,8 @@
 
 - Total Tasks: 12
 - Completed: 10
-- In Progress: 0
-- Remaining: 2
+- In Progress: 1
+- Remaining: 1
 - Completion: 83%
 
 ---
@@ -13,7 +13,7 @@
 ## Current Milestone
 
 Objective: Implement REQ-NTF-01 (Notification Feed)
-Status: Proposed (Pending plan approval)
+Status: In Progress
 
 ---
 
@@ -128,7 +128,7 @@ Files Modified
 - [MaintenanceKanban.jsx](file:///e:/AssetFlow2/AssetFlow/client/src/features/maintenance/MaintenanceKanban.jsx) (MODIFY)
 
 Validation
-- ✅ Functional: Tested raising, rejecting, approving/assigning, and resolving repairs.
+- ✅ font-display: Tested raising, rejecting, approving/assigning, and resolving repairs.
 - ✅ Integration: Confirmed that asset status shifts correctly on triage transitions and that history is stored/rendered chronologically.
 - ✅ Quality: ESLint code checks passed, client compiled and bundled successfully in production mode.
 
@@ -203,7 +203,7 @@ Notes
 - [x] REQ-AUD-01: Audit Cycle Management
 - [x] REQ-AUD-02: Audit Closure & Discrepancies
 - [x] REQ-REP-01: Reports & Exports
-- [ ] REQ-NTF-01: Notification Feed
+- [/] REQ-NTF-01: Notification Feed
 - [ ] REQ-LOG-01: Activity Logs UI
 
 ---

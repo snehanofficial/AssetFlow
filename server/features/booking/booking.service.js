@@ -1,6 +1,7 @@
 import prisma from '../../database/client.js';
 import { validateBookingOverlap } from './booking.lifecycle.js';
 import { logMutation } from '../../services/audit.service.js';
+import { publishNotification } from '../notifications/notification.service.js';
 
 /**
  * Fetch list of bookings with optional query filters.
@@ -127,6 +128,17 @@ export async function createBooking({ assetId, startDate, endDate, notes, user, 
     ipAddress,
   });
 
+  // Publish booking confirmation notification
+  await publishNotification({
+    employeeId: user.id,
+    type: 'BOOKING_CONFIRMED',
+    title: 'Booking Confirmed',
+    message: `You successfully reserved ${newBooking.asset.name} (${newBooking.asset.assetTag}) starting ${new Date(
+      newBooking.startDate
+    ).toLocaleString()}.`,
+    linkUrl: '/bookings',
+  }).catch(() => {});
+
   return newBooking;
 }
 
@@ -205,6 +217,15 @@ export async function cancelBooking({ id, user, ipAddress }) {
     newValue: { id: cancelled.id, status: 'CANCELLED' },
     ipAddress,
   });
+
+  // Publish booking cancellation notification
+  await publishNotification({
+    employeeId: cancelled.bookedById,
+    type: 'BOOKING_CANCELLED',
+    title: 'Booking Cancelled',
+    message: `Your booking for ${cancelled.asset.name} (${cancelled.asset.assetTag}) has been cancelled.`,
+    linkUrl: '/bookings',
+  }).catch(() => {});
 
   return cancelled;
 }
