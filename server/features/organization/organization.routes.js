@@ -381,6 +381,20 @@ router.delete('/employees/:id', authorizeRoles('ADMIN'), async (req, res, next) 
       });
     }
 
+    // REQ-EMP-01: Block deletion if employee holds active asset allocations
+    const activeAllocations = await prisma.assetAllocation.count({
+      where: { employeeId: targetId, status: 'ACTIVE' },
+    });
+    if (activeAllocations > 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'EMPLOYEE_HAS_ACTIVE_ALLOCATIONS',
+          message: `Cannot delete employee with active allocations. Reassign ${activeAllocations} asset(s) first.`,
+        },
+      });
+    }
+
     const deleted = await prisma.employee.update({
       where: { id: targetId },
       data: { deletedAt: new Date(), status: 'INACTIVE' },
@@ -610,6 +624,20 @@ router.delete(
         return res.status(404).json({
           success: false,
           error: { code: 'RESOURCE_NOT_FOUND', message: 'Category not found.' },
+        });
+      }
+
+      // Block delete if there are active (non-deleted) assets in this category
+      const activeAssetsCount = await prisma.asset.count({
+        where: { categoryId: catId, deletedAt: null },
+      });
+      if (activeAssetsCount > 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'CATEGORY_HAS_ACTIVE_ASSETS',
+            message: `Cannot delete category: ${activeAssetsCount} active asset(s) are still assigned to it.`,
+          },
         });
       }
 

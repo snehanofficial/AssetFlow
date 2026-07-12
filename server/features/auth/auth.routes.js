@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import prisma from '../../database/client.js';
 import { generateTokens, verifyRefreshToken, revokeRefreshToken } from './auth.service.js';
+import { generateResetToken, resetPassword } from './forgot.service.js';
 import { logMutation } from '../../services/audit.service.js';
 import authenticateSession from '../../middlewares/auth.middleware.js';
 
@@ -22,6 +23,19 @@ const signupSchema = z.object({
 const loginSchema = z.object({
   email: z.string().trim().email('Invalid email address format.'),
   password: z.string().min(1, 'Password is required.'),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().trim().email('Invalid email address format.'),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'Token is required.'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters long.')
+    .regex(/\d/, 'Password must contain at least 1 number.')
+    .regex(/[^a-zA-Z0-9]/, 'Password must contain at least 1 special character.'),
 });
 
 /**
@@ -291,6 +305,68 @@ router.get('/me', authenticateSession, async (req, res, next) => {
       },
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/v1/auth/forgot-password
+ * Triggers password reset email simulation.
+ */
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const validated = forgotPasswordSchema.parse(req.body);
+    const tokenRecord = await generateResetToken(validated.email);
+
+    // Simulate email delivery by logging to console
+    const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${tokenRecord.token}`;
+    console.log(`[SIMULATED EMAIL] Password reset requested for ${tokenRecord.employee.email}. Reset URL: ${resetUrl}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password reset link has been generated.',
+      data: process.env.NODE_ENV !== 'production' ? {
+        token: tokenRecord.token,
+        resetUrl,
+      } : undefined,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+    }
+    next(error);
+  }
+});
+
+/**
+ * POST /api/v1/auth/reset-password
+ * Verifies token and updates employee password.
+ */
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const validated = resetPasswordSchema.parse(req.body);
+    await resetPassword(validated.token, validated.password, req.ip);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password has been successfully updated.',
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+    }
     next(error);
   }
 });

@@ -34,7 +34,22 @@ export const errorHandler = (err, req, res, _next) => {
     return res.status(404).json(errorResponse);
   }
 
-  const status = err.statusCode || 500;
+  // Prisma foreign key constraint violation (P2003)
+  if (err.code === 'P2003') {
+    errorResponse.error.code = 'FOREIGN_KEY_VIOLATION';
+    errorResponse.error.message =
+      'The operation failed because a referenced resource does not exist or is protected.';
+    return res.status(400).json(errorResponse);
+  }
+
+  // Prisma inconsistent column data / malformed UUID (P2023)
+  if (err.code === 'P2023') {
+    errorResponse.error.code = 'INVALID_IDENTIFIER';
+    errorResponse.error.message = 'The provided ID or identifier is malformed or invalid.';
+    return res.status(400).json(errorResponse);
+  }
+
+  const status = err.status || err.statusCode || 500;
   return res.status(status).json(errorResponse);
 };
 

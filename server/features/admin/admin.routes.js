@@ -99,6 +99,23 @@ router.patch('/employees/:id/role', async (req, res, next) => {
       }
     }
 
+    // Prevent changing role if they are a Department Head
+    if (employee.role === 'DEPT_HEAD' && validated.role !== 'DEPT_HEAD') {
+      const isHead = await prisma.department.count({
+        where: { headId: targetId, deletedAt: null },
+      });
+      if (isHead > 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'EMPLOYEE_IS_DEPARTMENT_HEAD',
+            message:
+              'Cannot change role because the employee is currently a Department Head. Reassign the department head role first.',
+          },
+        });
+      }
+    }
+
     const updated = await prisma.employee.update({
       where: { id: targetId },
       data: { role: validated.role },
@@ -178,6 +195,20 @@ router.patch('/employees/:id/status', async (req, res, next) => {
             code: 'EMPLOYEE_IS_DEPARTMENT_HEAD',
             message:
               'Cannot deactivate employee because they are currently a Department Head. Reassign the department head role first.',
+          },
+        });
+      }
+
+      // REQ-EMP-01: Block deactivation if employee holds active asset allocations
+      const activeAllocations = await prisma.assetAllocation.count({
+        where: { employeeId: targetId, status: 'ACTIVE' },
+      });
+      if (activeAllocations > 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'EMPLOYEE_HAS_ACTIVE_ALLOCATIONS',
+            message: `Cannot deactivate employee with active allocations. Reassign ${activeAllocations} asset(s) first.`,
           },
         });
       }
@@ -535,6 +566,58 @@ router.delete('/departments/:id', async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: 'Department deleted successfully.',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/v1/admin/audit-logs
+ * Admin-only: Retrieves audit logs history, with searching and pagination filters.
+ */
+router.get('/audit-logs', async (req, res, next) => {
+  try {
+    const { actorEmail, tableName, action, limit = 100, offset = 0 } = req.query;
+
+    const where = {};
+    if (actorEmail) {
+      where.actorEmail = { contains: String(actorEmail), mode: 'insensitive' };
+    }
+    if (tableName) {
+      where.tableName = { contains: String(tableName), mode: 'insensitive' };
+    }
+    if (action) {
+      where.action = String(action);
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: Number(limit),
+        skip: Number(offset),
+        include: {
+          actor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.auditLog.count({ where }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        records: logs,
+        total,
+        limit: Number(limit),
+        offset: Number(offset),
+      },
     });
   } catch (error) {
     next(error);

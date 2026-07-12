@@ -65,7 +65,12 @@ export async function verifyRefreshToken(token) {
       },
     });
 
-    if (!record || !record.employee || record.employee.deletedAt !== null) {
+    if (
+      !record ||
+      !record.employee ||
+      record.employee.deletedAt !== null ||
+      record.employee.status === 'INACTIVE'
+    ) {
       return null;
     }
 

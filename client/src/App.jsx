@@ -7,9 +7,11 @@ import ProtectedLayout from './components/common/ProtectedLayout.jsx';
 // Feature Views
 import Login from './features/auth/Login.jsx';
 import Signup from './features/auth/Signup.jsx';
+import ForgotPassword from './features/auth/ForgotPassword.jsx';
+import ResetPassword from './features/auth/ResetPassword.jsx';
 import Dashboard from './features/dashboard/Dashboard.jsx';
-import AssetList from './features/assets/AssetList.jsx';
-import AllocationList from './features/allocation/AllocationList.jsx';
+import AssetsPage from './features/assets/AssetsPage.jsx';
+import AllocationsPage from './features/allocation/AllocationsPage.jsx';
 import BookingCalendar from './features/booking/BookingCalendar.jsx';
 import MaintenanceKanban from './features/maintenance/MaintenanceKanban.jsx';
 import AuditList from './features/audit/AuditList.jsx';
@@ -17,6 +19,7 @@ import AnalyticsDashboard from './features/reports/AnalyticsDashboard.jsx';
 import NotificationFeed from './features/notifications/NotificationFeed.jsx';
 import Organization from './features/organization/Organization.jsx';
 import OrganizationSetup from './features/admin/OrganizationSetup.jsx';
+import ActivityLogs from './features/admin/ActivityLogs.jsx';
 
 export const App = () => {
   return (
@@ -27,6 +30,8 @@ export const App = () => {
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
           </Route>
 
           {/* Protected Application routes */}
@@ -34,15 +39,32 @@ export const App = () => {
             <Route element={<AppLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/assets" element={<AssetList />} />
-              <Route path="/allocations" element={<AllocationList />} />
+
+              {/* Asset & Allocation Management — ADMIN, ASSET_MANAGER, DEPT_HEAD only */}
+              <Route
+                element={<ProtectedLayout allowedRoles={['ADMIN', 'ASSET_MANAGER', 'DEPT_HEAD']} />}
+              >
+                <Route path="/assets" element={<AssetsPage />} />
+                <Route path="/allocations" element={<AllocationsPage />} />
+              </Route>
+
               <Route path="/bookings" element={<BookingCalendar />} />
               <Route path="/maintenance" element={<MaintenanceKanban />} />
-              <Route path="/audits" element={<AuditList />} />
-              <Route path="/reports" element={<AnalyticsDashboard />} />
+
+              {/* Audits & Reports — ADMIN, ASSET_MANAGER only */}
+              <Route element={<ProtectedLayout allowedRoles={['ADMIN', 'ASSET_MANAGER']} />}>
+                <Route path="/audits" element={<AuditList />} />
+                <Route path="/reports" element={<AnalyticsDashboard />} />
+              </Route>
+
               <Route path="/notifications" element={<NotificationFeed />} />
               <Route path="/organization" element={<Organization />} />
-              <Route path="/admin/org-setup" element={<OrganizationSetup />} />
+
+              {/* Admin Only Routes */}
+              <Route element={<ProtectedLayout allowedRoles={['ADMIN']} />}>
+                <Route path="/admin/org-setup" element={<OrganizationSetup />} />
+                <Route path="/admin/audit-logs" element={<ActivityLogs />} />
+              </Route>
             </Route>
           </Route>
 

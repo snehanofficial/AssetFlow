@@ -2,12 +2,24 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Sun, Moon, LogOut, Search, Bell } from 'lucide-react';
 import { useTheme } from './Providers.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useQuery } from '@tanstack/react-query';
+import apiFetch from '../../utils/api.js';
 
 export const GlobalHeader = () => {
   const { theme, toggleTheme } = useTheme();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Fetch unread notification counts (poll every 20 seconds)
+  const { data: notificationsResponse } = useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: () => apiFetch('/notifications'),
+    enabled: !!user,
+    refetchInterval: 20000,
+  });
+
+  const unreadCount = notificationsResponse?.data?.unreadCount || 0;
 
   // Simple path parser for title
   const getPageTitle = () => {
@@ -54,9 +66,17 @@ export const GlobalHeader = () => {
         </button>
 
         {/* Notifications badge */}
-        <button className="p-2 rounded-md hover:bg-surface-hover text-text-secondary hover:text-text-primary relative transition-all cursor-pointer">
+        <button
+          onClick={() => navigate('/notifications')}
+          className="p-2 rounded-md hover:bg-surface-hover text-text-secondary hover:text-text-primary relative transition-all cursor-pointer"
+          title="Notifications"
+        >
           <Bell className="w-4 h-4" />
-          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive"></span>
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-destructive text-[8px] font-bold text-white leading-none shadow-sm animate-pulse">
+              {unreadCount}
+            </span>
+          )}
         </button>
 
         {/* Logout trigger */}
