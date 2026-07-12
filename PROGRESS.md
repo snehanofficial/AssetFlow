@@ -3,17 +3,17 @@
 ## Overall Progress
 
 - Total Tasks: 12
-- Completed: 10
-- In Progress: 1
-- Remaining: 1
-- Completion: 83%
+- Completed: 12
+- In Progress: 0
+- Remaining: 0
+- Completion: 100%
 
 ---
 
 ## Current Milestone
 
-Objective: Implement REQ-NTF-01 (Notification Feed)
-Status: In Progress
+Objective: Finalized
+Status: ✅ Completed (All requirements fully implemented)
 
 ---
 
@@ -128,7 +128,7 @@ Files Modified
 - [MaintenanceKanban.jsx](file:///e:/AssetFlow2/AssetFlow/client/src/features/maintenance/MaintenanceKanban.jsx) (MODIFY)
 
 Validation
-- ✅ font-display: Tested raising, rejecting, approving/assigning, and resolving repairs.
+- ✅ Functional: Tested raising, rejecting, approving/assigning, and resolving repairs.
 - ✅ Integration: Confirmed that asset status shifts correctly on triage transitions and that history is stored/rendered chronologically.
 - ✅ Quality: ESLint code checks passed, client compiled and bundled successfully in production mode.
 
@@ -191,6 +191,63 @@ Notes
 
 ---
 
+### Step 7 — REQ-NTF-01: Notification Feed
+
+Date: 2026-07-12
+
+Status: ✅ Completed
+
+Implemented
+- Developed a personal notifications page with unread highlighting, mark all as read triggers, and click redirection using notification `linkUrl` references.
+- Linked the navigation bar Bell button to `/notifications` and styled a dynamic unread badge reflecting the user's live unread notifications count.
+- Integrated `publishNotification` inside Bookings, Repairs, and Audits to dispatch logs when events occur.
+
+Files Modified
+- [notification.service.js](file:///e:/AssetFlow2/AssetFlow/server/features/notifications/notification.service.js) (NEW)
+- [notification.routes.js](file:///e:/AssetFlow2/AssetFlow/server/features/notifications/notification.routes.js) (NEW)
+- [booking.service.js](file:///e:/AssetFlow2/AssetFlow/server/features/booking/booking.service.js) (MODIFY)
+- [maintenance.service.js](file:///e:/AssetFlow2/AssetFlow/server/features/maintenance/maintenance.service.js) (MODIFY)
+- [audit.service.js](file:///e:/AssetFlow2/AssetFlow/server/features/audit/audit.service.js) (MODIFY)
+- [GlobalHeader.jsx](file:///e:/AssetFlow2/AssetFlow/client/src/components/common/GlobalHeader.jsx) (MODIFY)
+- [NotificationFeed.jsx](file:///e:/AssetFlow2/AssetFlow/client/src/features/notifications/NotificationFeed.jsx) (MODIFY)
+
+Validation
+- ✅ Functional: Tested notifications listing, read status updating, and mass reading.
+- ✅ Integration: Confirmed that bookings scheduling, repairs approvals, and audits creation trigger live inbox warnings.
+- ✅ Quality: ESLint code checks passed, client compiled and bundled successfully.
+
+Notes
+- Programmed and ran `test_notifications.js` checking publish hooks and counts.
+
+---
+
+### Step 8 — REQ-LOG-01: Activity Logs UI
+
+Date: 2026-07-12
+
+Status: ✅ Completed
+
+Implemented
+- Exposed paginated administrative audit logs query endpoint supporting search parameters.
+- Built log dashboard displaying timestamp, actors details, table names, and IP address.
+- Designed inspector drawer modal parsing record changes and highlighting key mutation diffs in side-by-side JSON layouts.
+
+Files Modified
+- [admin.routes.js](file:///e:/AssetFlow2/AssetFlow/server/features/admin/admin.routes.js) (MODIFY)
+- [ActivityLogs.jsx](file:///e:/AssetFlow2/AssetFlow/client/src/features/admin/ActivityLogs.jsx) (NEW)
+- [App.jsx](file:///e:/AssetFlow2/AssetFlow/client/src/App.jsx) (MODIFY)
+- [Sidebar.jsx](file:///e:/AssetFlow2/AssetFlow/client/src/components/common/Sidebar.jsx) (MODIFY)
+
+Validation
+- ✅ Functional: Tested querying mutations logs, filtering results, and page pagination triggers.
+- ✅ Integration: Confirmed JSON diff drawer correctly outputs field additions/deletions.
+- ✅ Quality: ESLint code checks passed, client compiled successfully.
+
+Notes
+- Programmed and ran `test_audit_logs.js` checking DB log insertions and table queries.
+
+---
+
 ## Pending Tasks
 
 - [x] REQ-ATH-01: Forgot Password / Password Recovery
@@ -203,8 +260,8 @@ Notes
 - [x] REQ-AUD-01: Audit Cycle Management
 - [x] REQ-AUD-02: Audit Closure & Discrepancies
 - [x] REQ-REP-01: Reports & Exports
-- [/] REQ-NTF-01: Notification Feed
-- [ ] REQ-LOG-01: Activity Logs UI
+- [x] REQ-NTF-01: Notification Feed
+- [x] REQ-LOG-01: Activity Logs UI
 
 ---
 
@@ -222,18 +279,17 @@ Notes
 
 ## Decisions
 
-- Set up a standard token-based password reset cycle using cryptographic tokens and force logout upon reset.
-- Simulated mail recovery link logging in server console and returning token in development mode for easy developer setup verification.
-- Scoped Dashboard Available Assets count for standard Employees specifically to bookable assets, aligning with their primary dashboard actions.
-- Enforced soft-cancellations for resource bookings (setting status to `CANCELLED`) to retain audit trail.
-- Implemented user and role checks preventing employees from cancelling other colleagues' bookings.
-- Allowed standard employees to act as assigned technicians for repairs, and restricted approval/rejections to Admin/Asset Managers.
-- Scoped audit sheets so standard employees only view campaigns they are assigned to as auditors, while admins see all cycles.
-- Automated high-priority pending repair triage ticket dispatches during audit cycles closure for all items checked as DAMAGED.
-- Handled browser file downloads by fetching blob outputs via authorization-headed calls to support JWT security policies.
+- Set up a token-based password recovery pipeline.
+- Scoped Dashboard metrics to employee vs managers.
+- Enforced transactional bookings overlap validations and soft cancellations.
+- Configured repair triage Kanban board and asset status transitions.
+- Programmed department/location scoped Audits and cascade cycles locks.
+- Integrated Recharts dashboard analytics and JWT-authenticated stream exports.
+- Wired automated notification publisher hooks on bookings, repairs, and audits.
+- Added administrative system activity logs browser showing field-level JSON changes.
 
 ---
 
 ## Next Step
 
-Implement the Notification Feed (**REQ-NTF-01**).
+All Developer B requirements have been fully completed, validated, and integrated.

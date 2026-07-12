@@ -19,6 +19,7 @@ import AnalyticsDashboard from './features/reports/AnalyticsDashboard.jsx';
 import NotificationFeed from './features/notifications/NotificationFeed.jsx';
 import Organization from './features/organization/Organization.jsx';
 import OrganizationSetup from './features/admin/OrganizationSetup.jsx';
+import ActivityLogs from './features/admin/ActivityLogs.jsx';
 
 export const App = () => {
   return (
@@ -47,6 +48,7 @@ export const App = () => {
               <Route path="/notifications" element={<NotificationFeed />} />
               <Route path="/organization" element={<Organization />} />
               <Route path="/admin/org-setup" element={<OrganizationSetup />} />
+              <Route path="/admin/audit-logs" element={<ActivityLogs />} />
             </Route>
           </Route>
 
