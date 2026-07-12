@@ -8,8 +8,8 @@ import ProtectedLayout from './components/common/ProtectedLayout.jsx';
 import Login from './features/auth/Login.jsx';
 import Signup from './features/auth/Signup.jsx';
 import Dashboard from './features/dashboard/Dashboard.jsx';
-import AssetList from './features/assets/AssetList.jsx';
-import AllocationList from './features/allocation/AllocationList.jsx';
+import AssetsPage from './features/assets/AssetsPage.jsx';
+import AllocationsPage from './features/allocation/AllocationsPage.jsx';
 import BookingCalendar from './features/booking/BookingCalendar.jsx';
 import MaintenanceKanban from './features/maintenance/MaintenanceKanban.jsx';
 import AuditList from './features/audit/AuditList.jsx';
@@ -34,8 +34,8 @@ export const App = () => {
             <Route element={<AppLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/assets" element={<AssetList />} />
-              <Route path="/allocations" element={<AllocationList />} />
+              <Route path="/assets" element={<AssetsPage />} />
+              <Route path="/allocations" element={<AllocationsPage />} />
               <Route path="/bookings" element={<BookingCalendar />} />
               <Route path="/maintenance" element={<MaintenanceKanban />} />
               <Route path="/audits" element={<AuditList />} />

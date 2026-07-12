@@ -181,6 +181,20 @@ router.patch('/employees/:id/status', async (req, res, next) => {
           },
         });
       }
+
+      // REQ-EMP-01: Block deactivation if employee holds active asset allocations
+      const activeAllocations = await prisma.assetAllocation.count({
+        where: { employeeId: targetId, status: 'ACTIVE' },
+      });
+      if (activeAllocations > 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'EMPLOYEE_HAS_ACTIVE_ALLOCATIONS',
+            message: `Cannot deactivate employee with active allocations. Reassign ${activeAllocations} asset(s) first.`,
+          },
+        });
+      }
     }
 
     const updated = await prisma.employee.update({
