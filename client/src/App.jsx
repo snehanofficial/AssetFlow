@@ -7,6 +7,8 @@ import ProtectedLayout from './components/common/ProtectedLayout.jsx';
 // Feature Views
 import Login from './features/auth/Login.jsx';
 import Signup from './features/auth/Signup.jsx';
+import ForgotPassword from './features/auth/ForgotPassword.jsx';
+import ResetPassword from './features/auth/ResetPassword.jsx';
 import Dashboard from './features/dashboard/Dashboard.jsx';
 import AssetsPage from './features/assets/AssetsPage.jsx';
 import AllocationsPage from './features/allocation/AllocationsPage.jsx';
@@ -17,6 +19,7 @@ import AnalyticsDashboard from './features/reports/AnalyticsDashboard.jsx';
 import NotificationFeed from './features/notifications/NotificationFeed.jsx';
 import Organization from './features/organization/Organization.jsx';
 import OrganizationSetup from './features/admin/OrganizationSetup.jsx';
+import ActivityLogs from './features/admin/ActivityLogs.jsx';
 
 export const App = () => {
   return (
@@ -27,6 +30,8 @@ export const App = () => {
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
           </Route>
 
           {/* Protected Application routes */}
@@ -58,6 +63,7 @@ export const App = () => {
               {/* Admin Only Routes */}
               <Route element={<ProtectedLayout allowedRoles={['ADMIN']} />}>
                 <Route path="/admin/org-setup" element={<OrganizationSetup />} />
+                <Route path="/admin/audit-logs" element={<ActivityLogs />} />
               </Route>
             </Route>
           </Route>

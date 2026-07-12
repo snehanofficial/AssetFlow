@@ -572,4 +572,56 @@ router.delete('/departments/:id', async (req, res, next) => {
   }
 });
 
+/**
+ * GET /api/v1/admin/audit-logs
+ * Admin-only: Retrieves audit logs history, with searching and pagination filters.
+ */
+router.get('/audit-logs', async (req, res, next) => {
+  try {
+    const { actorEmail, tableName, action, limit = 100, offset = 0 } = req.query;
+
+    const where = {};
+    if (actorEmail) {
+      where.actorEmail = { contains: String(actorEmail), mode: 'insensitive' };
+    }
+    if (tableName) {
+      where.tableName = { contains: String(tableName), mode: 'insensitive' };
+    }
+    if (action) {
+      where.action = String(action);
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: Number(limit),
+        skip: Number(offset),
+        include: {
+          actor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.auditLog.count({ where }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        records: logs,
+        total,
+        limit: Number(limit),
+        offset: Number(offset),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

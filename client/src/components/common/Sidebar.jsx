@@ -10,6 +10,7 @@ import {
   Settings,
   Bell,
   Shield,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 
@@ -44,6 +45,7 @@ export const Sidebar = () => {
   );
   if (user?.role === 'ADMIN') {
     visibleNavigation.push({ name: 'Admin Setup', path: '/admin/org-setup', icon: Shield });
+    visibleNavigation.push({ name: 'Activity Logs', path: '/admin/audit-logs', icon: ShieldAlert });
   }
 
   // Helper to extract initials

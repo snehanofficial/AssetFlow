@@ -1,10 +1,22 @@
 import { Router } from 'express';
-import prisma from '../../database/client.js';
 import authenticateSession from '../../middlewares/auth.middleware.js';
+import { getDashboardMetrics } from './dashboard.service.js';
+import prisma from '../../database/client.js';
 
 const router = Router();
-
 router.use(authenticateSession);
+
+
+/**
+ * GET /api/v1/dashboard/metrics
+ * Fetches KPIs and warning indicators (overdue assets).
+ */
+router.get('/metrics', authenticateSession, async (req, res, next) => {
+  try {
+    const metrics = await getDashboardMetrics(req.user);
+    return res.status(200).json({
+      success: true,
+      data: metrics,
 
 router.get('/', async (req, res, next) => {
   try {
