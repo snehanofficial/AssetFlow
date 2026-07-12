@@ -76,5 +76,5 @@ AssetFlow/
 - **Feature-First Architecture**: Group code by business modules (`features/auth`, `features/assets`, etc.) rather than technical layers.
 - **Service-Repository Pattern**: Enforce separation of concerns on the server. Controllers route inputs, Services manage business rules, and Repositories run database operations.
 - **Strict Database Invariants**: Guard against invalid states with database check constraints and partial unique indexes.
-- **JWT & HTTP-Only Cookies**: Secure authentication using rotated refresh tokens in HTTP-Only cookies.
+- **JWT & HTTP-Only Cookies**: Secure authentication used for rotated refresh tokens in HTTP-Only cookies.
 
