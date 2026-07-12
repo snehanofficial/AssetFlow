@@ -3,16 +3,16 @@
 ## Overall Progress
 
 - Total Tasks: 12
-- Completed: 7
+- Completed: 9
 - In Progress: 0
-- Remaining: 5
-- Completion: 58%
+- Remaining: 3
+- Completion: 75%
 
 ---
 
 ## Current Milestone
 
-Objective: Implement REQ-AUD-01 & REQ-AUD-02 (Audit Cycle Management and Closure)
+Objective: Implement REQ-REP-01 (Reports & Exports)
 Status: Proposed (Pending plan approval)
 
 ---
@@ -137,6 +137,33 @@ Notes
 
 ---
 
+### Step 5 — REQ-AUD-01 & REQ-AUD-02: Compliance Audits & Closure Cascades
+
+Date: 2026-07-12
+
+Status: ✅ Completed
+
+Implemented
+- Designed Audit Cycles listing, cycle creation wizard (with location text or department dropdown scopes, due dates, and multiple auditor assignees).
+- Programmed detailed verifier sheets with verification checklists, search filters, notes logs, and statistics graphs.
+- Developed transactional backend scoping assets, updating auditor verification checklists, and cascading status updates upon cycle closure (MISSING marks assets `LOST`, and DAMAGED marks assets `UNDER_MAINTENANCE` and programmatically dispatches pending maintenance triage tickets).
+- Enforced lockouts blocking updating checked items once a cycle is CLOSED.
+
+Files Modified
+- [audit.service.js](file:///e:/AssetFlow2/AssetFlow/server/features/audit/audit.service.js) (NEW)
+- [audit.routes.js](file:///e:/AssetFlow2/AssetFlow/server/features/audit/audit.routes.js) (MODIFY)
+- [AuditList.jsx](file:///e:/AssetFlow2/AssetFlow/client/src/features/audit/AuditList.jsx) (MODIFY)
+
+Validation
+- ✅ Functional: Cycle creations, scope triage calculations, auditor updates, closure checks, lock blocks, and cascades verified.
+- ✅ Integration: Verified real-time progress calculations and checklist items filtering.
+- ✅ Quality: ESLint code checks passed, client compiled and bundled successfully in production mode.
+
+Notes
+- Programmed and ran `test_audit.js` asserting all cycle verification check state conditions.
+
+---
+
 ## Pending Tasks
 
 - [x] REQ-ATH-01: Forgot Password / Password Recovery
@@ -146,8 +173,8 @@ Notes
 - [x] REQ-BOK-02: Time-slot Overlap Validation
 - [x] REQ-MNT-01: Maintenance Request & Workflow
 - [x] REQ-MNT-02: Maintenance History per Asset
-- [ ] REQ-AUD-01: Audit Cycle Management
-- [ ] REQ-AUD-02: Audit Closure & Discrepancies
+- [x] REQ-AUD-01: Audit Cycle Management
+- [x] REQ-AUD-02: Audit Closure & Discrepancies
 - [ ] REQ-REP-01: Reports & Exports
 - [ ] REQ-NTF-01: Notification Feed
 - [ ] REQ-LOG-01: Activity Logs UI
@@ -174,9 +201,11 @@ Notes
 - Enforced soft-cancellations for resource bookings (setting status to `CANCELLED`) to retain audit trail.
 - Implemented user and role checks preventing employees from cancelling other colleagues' bookings.
 - Allowed standard employees to act as assigned technicians for repairs, and restricted approval/rejections to Admin/Asset Managers.
+- Scoped audit sheets so standard employees only view campaigns they are assigned to as auditors, while admins see all cycles.
+- Automated high-priority pending repair triage ticket dispatches during audit cycles closure for all items checked as DAMAGED.
 
 ---
 
 ## Next Step
 
-Implement the Audit Cycle Management and Closure (**REQ-AUD-01** & **REQ-AUD-02**).
+Implement the Reports & Exports (**REQ-REP-01**).
