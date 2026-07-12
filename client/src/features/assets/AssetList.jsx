@@ -10,31 +10,23 @@ import {
   ChevronRight,
   RefreshCw,
   Tag,
+  X,
 } from 'lucide-react';
 import { fetchAssets, fetchCategories } from './assets.api.js';
 import apiFetch from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { AssetStatusBadge } from '../../components/ui/Badge.jsx';
+import { SkeletonTable } from '../../components/ui/Skeleton.jsx';
+import { PageHeader } from '../../components/ui/PageHeader.jsx';
+import { EmptyState, FilterEmptyState } from '../../components/ui/EmptyState.jsx';
+import { Button } from '../../components/ui/Button.jsx';
 
-const STATUS_CONFIG = {
-  AVAILABLE: {
-    label: 'Available',
-    className: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-  },
-  ALLOCATED: { label: 'Allocated', className: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-  UNDER_MAINTENANCE: {
-    label: 'Maintenance',
-    className: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-  },
-  RESERVED: {
-    label: 'Reserved',
-    className: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  },
-  LOST: { label: 'Lost', className: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
-  RETIRED: { label: 'Retired', className: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30' },
-  DISPOSED: { label: 'Disposed', className: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30' },
+const CONDITION_LABELS = {
+  NEW: { label: 'New', className: 'text-[hsl(var(--success))]' },
+  GOOD: { label: 'Good', className: 'text-[hsl(var(--info))]' },
+  FAIR: { label: 'Fair', className: 'text-[hsl(var(--warning))]' },
+  POOR: { label: 'Poor', className: 'text-[hsl(var(--danger))]' },
 };
-
-const CONDITION_LABELS = { NEW: 'New', GOOD: 'Good', FAIR: 'Fair', POOR: 'Poor' };
 
 const ALL_STATUSES = [
   'AVAILABLE',
@@ -45,6 +37,19 @@ const ALL_STATUSES = [
   'RETIRED',
   'DISPOSED',
 ];
+
+const STATUS_LABELS = {
+  AVAILABLE: 'Available',
+  ALLOCATED: 'Allocated',
+  UNDER_MAINTENANCE: 'Maintenance',
+  RESERVED: 'Reserved',
+  LOST: 'Lost',
+  RETIRED: 'Retired',
+  DISPOSED: 'Disposed',
+};
+
+// ─── Table column headers ─────────────────────────────────────────────────────
+const COLUMNS = ['Tag', 'Asset', 'Category', 'Location', 'Status', 'Condition', 'Holder'];
 
 export const AssetList = ({ onRegister, onViewDetail }) => {
   const { user } = useAuth();
@@ -58,7 +63,9 @@ export const AssetList = ({ onRegister, onViewDetail }) => {
   const [page, setPage] = useState(1);
   const limit = 15;
 
-  // Debounce search
+  const hasActiveFilters =
+    debouncedSearch || selectedStatus || selectedCategory || selectedDepartment;
+
   const handleSearchChange = useCallback((value) => {
     setSearch(value);
     clearTimeout(window._assetSearchTimer);
@@ -66,6 +73,15 @@ export const AssetList = ({ onRegister, onViewDetail }) => {
       setDebouncedSearch(value);
       setPage(1);
     }, 400);
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSearch('');
+    setDebouncedSearch('');
+    setSelectedStatus('');
+    setSelectedCategory('');
+    setSelectedDepartment('');
+    setPage(1);
   }, []);
 
   const {
@@ -94,20 +110,19 @@ export const AssetList = ({ onRegister, onViewDetail }) => {
         categoryId: selectedCategory,
         departmentId: selectedDepartment,
       }),
-    keepPreviousData: true,
+    placeholderData: (prev) => prev,
   });
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60_000,
   });
 
-  // Departments for filter — Admin/Asset Manager only (DEPT_HEAD is auto-scoped server-side)
   const { data: departmentsData } = useQuery({
     queryKey: ['departments-flat'],
     queryFn: () => apiFetch('/organization/departments'),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60_000,
     enabled: user?.role === 'ADMIN' || user?.role === 'ASSET_MANAGER',
   });
 
@@ -116,7 +131,6 @@ export const AssetList = ({ onRegister, onViewDetail }) => {
   const totalPages = Math.ceil(total / limit);
   const categories = categoriesData?.data?.records ?? categoriesData?.data ?? [];
   const departments = departmentsData?.data?.records ?? departmentsData?.data ?? [];
-
   const canRegister = user?.role === 'ADMIN' || user?.role === 'ASSET_MANAGER';
 
   const handleRowClick = (assetId) => {
@@ -128,57 +142,74 @@ export const AssetList = ({ onRegister, onViewDetail }) => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <h1 className="font-display text-2xl font-bold tracking-tight text-text-primary flex items-center gap-2">
-            <Package size={24} className="text-primary" />
-            Asset Directory
-          </h1>
-          <p className="text-text-secondary text-xs">
-            {total > 0 ? `${total} asset${total !== 1 ? 's' : ''} registered` : 'No assets yet'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            className="p-2 rounded-lg border border-border text-text-secondary hover:text-text-primary hover:bg-surface transition-all"
-            title="Refresh"
-          >
-            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-          </button>
-          {canRegister && (
-            <button
-              onClick={onRegister}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-lg shadow-primary/20"
-            >
-              <Plus size={14} />
-              Register Asset
-            </button>
-          )}
-        </div>
-      </div>
+    <div className="space-y-5">
+      {/* ── Header ── */}
+      <PageHeader
+        title="Asset Directory"
+        description={
+          total > 0
+            ? `${total.toLocaleString()} asset${total !== 1 ? 's' : ''} registered`
+            : undefined
+        }
+        icon={Package}
+      >
+        <button
+          onClick={() => refetch()}
+          className="
+            w-8 h-8 flex items-center justify-center rounded-lg
+            border border-[hsl(var(--border))]
+            text-[hsl(var(--text-secondary))]
+            hover:text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-hover))]
+            transition-colors duration-100 cursor-pointer
+          "
+          aria-label="Refresh asset list"
+          title="Refresh"
+        >
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`}
+            aria-hidden="true"
+          />
+        </button>
+        {canRegister && (
+          <Button variant="primary" size="sm" onClick={onRegister}>
+            <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+            Register Asset
+          </Button>
+        )}
+      </PageHeader>
 
-      {/* Filters */}
-      <div className="card-elevation p-4">
-        <div className="flex flex-wrap items-center gap-3">
+      {/* ── Filter toolbar ── */}
+      <div className="card p-4">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Search */}
-          <div className="relative flex-1 min-w-52">
+          <div className="relative flex-1 min-w-48">
             <Search
-              size={13}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[hsl(var(--text-muted))] pointer-events-none"
+              aria-hidden="true"
             />
             <input
-              type="text"
+              type="search"
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Search by tag, serial, name, location..."
-              className="w-full bg-background border border-border rounded-lg pl-8 pr-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
+              placeholder="Search tag, serial, name, location…"
+              aria-label="Search assets"
+              className="
+                w-full h-8 pl-8 pr-3
+                bg-[hsl(var(--background))] border border-[hsl(var(--border))]
+                rounded-lg text-xs text-[hsl(var(--text-primary))]
+                placeholder:text-[hsl(var(--text-muted))]
+                focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] focus:border-[hsl(var(--ring))]
+                transition-all duration-100
+              "
             />
           </div>
 
-          <Filter size={13} className="text-text-muted" />
+          <span
+            className="flex items-center gap-1 text-[hsl(var(--text-muted))] text-xs"
+            aria-hidden="true"
+          >
+            <Filter className="w-3.5 h-3.5" />
+          </span>
 
           {/* Status filter */}
           <select
@@ -187,12 +218,18 @@ export const AssetList = ({ onRegister, onViewDetail }) => {
               setSelectedStatus(e.target.value);
               setPage(1);
             }}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all cursor-pointer"
+            aria-label="Filter by status"
+            className="
+              h-8 px-3 bg-[hsl(var(--background))] border border-[hsl(var(--border))]
+              rounded-lg text-xs text-[hsl(var(--text-primary))]
+              focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))]
+              transition-all duration-100 cursor-pointer
+            "
           >
             <option value="">All Statuses</option>
             {ALL_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {STATUS_CONFIG[s]?.label ?? s}
+                {STATUS_LABELS[s] ?? s}
               </option>
             ))}
           </select>
@@ -204,7 +241,13 @@ export const AssetList = ({ onRegister, onViewDetail }) => {
               setSelectedCategory(e.target.value);
               setPage(1);
             }}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all cursor-pointer"
+            aria-label="Filter by category"
+            className="
+              h-8 px-3 bg-[hsl(var(--background))] border border-[hsl(var(--border))]
+              rounded-lg text-xs text-[hsl(var(--text-primary))]
+              focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))]
+              transition-all duration-100 cursor-pointer
+            "
           >
             <option value="">All Categories</option>
             {categories.map((cat) => (
@@ -214,7 +257,7 @@ export const AssetList = ({ onRegister, onViewDetail }) => {
             ))}
           </select>
 
-          {/* Department filter — Admin/Asset Manager only */}
+          {/* Department filter */}
           {(user?.role === 'ADMIN' || user?.role === 'ASSET_MANAGER') && departments.length > 0 && (
             <select
               value={selectedDepartment}
@@ -222,7 +265,13 @@ export const AssetList = ({ onRegister, onViewDetail }) => {
                 setSelectedDepartment(e.target.value);
                 setPage(1);
               }}
-              className="bg-background border border-border rounded-lg px-3 py-2 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all cursor-pointer"
+              aria-label="Filter by department"
+              className="
+                h-8 px-3 bg-[hsl(var(--background))] border border-[hsl(var(--border))]
+                rounded-lg text-xs text-[hsl(var(--text-primary))]
+                focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))]
+                transition-all duration-100 cursor-pointer
+              "
             >
               <option value="">All Departments</option>
               {departments.map((dept) => (
@@ -233,174 +282,194 @@ export const AssetList = ({ onRegister, onViewDetail }) => {
             </select>
           )}
 
-          {(selectedStatus || selectedCategory || selectedDepartment || debouncedSearch) && (
+          {/* Clear filters */}
+          {hasActiveFilters && (
             <button
-              onClick={() => {
-                setSearch('');
-                setDebouncedSearch('');
-                setSelectedStatus('');
-                setSelectedCategory('');
-                setSelectedDepartment('');
-                setPage(1);
-              }}
-              className="text-xs text-text-muted hover:text-primary transition-colors px-2"
+              onClick={clearFilters}
+              className="
+                flex items-center gap-1
+                h-8 px-2.5 rounded-lg text-xs font-medium
+                text-[hsl(var(--text-muted))] hover:text-[hsl(var(--danger))]
+                hover:bg-[hsl(var(--danger)/0.06)]
+                transition-colors duration-100 cursor-pointer
+              "
+              aria-label="Clear all filters"
             >
-              Clear filters
+              <X className="w-3.5 h-3.5" aria-hidden="true" />
+              Clear
             </button>
           )}
         </div>
       </div>
 
-      {/* Table */}
-      <div className="card-elevation overflow-hidden">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-text-muted text-xs">Loading assets...</p>
-            </div>
-          </div>
-        ) : records.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-3">
-            <Package size={40} className="text-text-muted/30" />
-            <p className="text-text-muted text-sm font-medium">No assets found</p>
-            <p className="text-text-muted text-xs">
-              {debouncedSearch || selectedStatus || selectedCategory
-                ? 'Try adjusting your filters'
-                : canRegister
-                  ? 'Register your first asset to get started'
-                  : 'No assets are available to view'}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border/50 bg-surface/30">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wide">
-                    Tag
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wide">
-                    Asset
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wide">
-                    Category
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wide">
-                    Location
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wide">
-                    Status
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wide">
-                    Condition
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-text-muted uppercase tracking-wide">
-                    Holder
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/30">
-                {records.map((asset) => {
-                  const statusCfg = STATUS_CONFIG[asset.status] ?? {
-                    label: asset.status,
-                    className: 'bg-zinc-500/20 text-zinc-400',
-                  };
-                  const activeAlloc = asset.allocations?.[0];
-                  return (
-                    <tr
-                      key={asset.id}
-                      onClick={() => handleRowClick(asset.id)}
-                      className="hover:bg-surface/40 transition-colors cursor-pointer group"
-                    >
-                      <td className="px-4 py-3">
-                        <span className="flex items-center gap-1.5 text-xs font-mono text-primary font-semibold">
-                          <Tag size={11} />
-                          {asset.assetTag}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="text-xs font-medium text-text-primary group-hover:text-primary transition-colors">
-                            {asset.name}
-                          </p>
-                          <p className="text-[10px] text-text-muted font-mono">
-                            {asset.serialNumber}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-text-secondary">
-                          {asset.category?.name ?? '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-text-secondary truncate max-w-32 block">
-                          {asset.location}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusCfg.className}`}
-                        >
-                          {statusCfg.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-text-secondary">
-                          {CONDITION_LABELS[asset.condition] ?? asset.condition}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {activeAlloc ? (
-                          <div>
-                            <p className="text-xs text-text-primary">
-                              {activeAlloc.employee?.name}
-                            </p>
-                            <p className="text-[10px] text-text-muted">
-                              {activeAlloc.employee?.email}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-text-muted">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {/* ── Table ── */}
+      {isLoading ? (
+        <SkeletonTable rows={8} columns={COLUMNS.length} columnLabels={COLUMNS} />
+      ) : (
+        <div
+          className="card overflow-hidden"
+          aria-busy={isFetching}
+          aria-label="Asset directory table"
+        >
+          {records.length === 0 ? (
+            hasActiveFilters ? (
+              <FilterEmptyState onClear={clearFilters} />
+            ) : (
+              <EmptyState
+                icon={Package}
+                title="No assets registered yet"
+                description="Register your organization's physical assets to start tracking custody, condition, and location."
+              >
+                {canRegister && (
+                  <Button variant="primary" size="sm" onClick={onRegister}>
+                    <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                    Register First Asset
+                  </Button>
+                )}
+              </EmptyState>
+            )
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full" aria-label="Asset Directory">
+                <thead>
+                  <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--surface-subtle))]">
+                    {COLUMNS.map((col) => (
+                      <th key={col} scope="col" className="table-header-cell">
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[hsl(var(--border-subtle))]">
+                  {records.map((asset) => {
+                    const conditionCfg = CONDITION_LABELS[asset.condition];
+                    const activeAlloc = asset.allocations?.[0];
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border/50">
-            <p className="text-xs text-text-muted">
-              Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total}
-            </p>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-1.5 rounded border border-border text-text-muted hover:text-text-primary hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <span className="text-xs text-text-secondary px-2">
-                {page} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-1.5 rounded border border-border text-text-muted hover:text-text-primary hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronRight size={14} />
-              </button>
+                    return (
+                      <tr
+                        key={asset.id}
+                        onClick={() => handleRowClick(asset.id)}
+                        className="
+                          hover:bg-[hsl(var(--surface-hover)/0.60)]
+                          transition-colors duration-100
+                          cursor-pointer group
+                        "
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`View details for ${asset.name}`}
+                        onKeyDown={(e) => e.key === 'Enter' && handleRowClick(asset.id)}
+                      >
+                        {/* Tag */}
+                        <td className="table-cell">
+                          <span className="flex items-center gap-1.5 font-mono text-xs font-semibold text-[hsl(var(--primary))]">
+                            <Tag className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
+                            {asset.assetTag}
+                          </span>
+                        </td>
+                        {/* Asset name + serial */}
+                        <td className="table-cell">
+                          <div>
+                            <p className="text-xs font-medium text-[hsl(var(--text-primary))] group-hover:text-[hsl(var(--primary))] transition-colors duration-100 truncate max-w-[200px]">
+                              {asset.name}
+                            </p>
+                            {asset.serialNumber && (
+                              <p className="text-[10px] font-mono text-[hsl(var(--text-muted))] mt-0.5">
+                                {asset.serialNumber}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                        {/* Category */}
+                        <td className="table-cell">
+                          <span className="text-xs text-[hsl(var(--text-secondary))]">
+                            {asset.category?.name ?? '—'}
+                          </span>
+                        </td>
+                        {/* Location */}
+                        <td className="table-cell">
+                          <span className="text-xs text-[hsl(var(--text-secondary))] truncate block max-w-[120px]">
+                            {asset.location || '—'}
+                          </span>
+                        </td>
+                        {/* Status */}
+                        <td className="table-cell">
+                          <AssetStatusBadge status={asset.status} />
+                        </td>
+                        {/* Condition */}
+                        <td className="table-cell">
+                          <span
+                            className={`text-xs font-medium ${conditionCfg?.className ?? 'text-[hsl(var(--text-secondary))]'}`}
+                          >
+                            {conditionCfg?.label ?? asset.condition ?? '—'}
+                          </span>
+                        </td>
+                        {/* Holder */}
+                        <td className="table-cell">
+                          {activeAlloc ? (
+                            <div>
+                              <p className="text-xs text-[hsl(var(--text-primary))] font-medium truncate max-w-[140px]">
+                                {activeAlloc.employee?.name}
+                              </p>
+                              <p className="text-[10px] text-[hsl(var(--text-muted))] truncate max-w-[140px]">
+                                {activeAlloc.employee?.email}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-[hsl(var(--text-muted))]">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+
+          {/* ── Pagination ── */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-[hsl(var(--border-subtle))]">
+              <p className="text-xs text-[hsl(var(--text-muted))]">
+                {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total.toLocaleString()}{' '}
+                assets
+              </p>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="
+                    w-7 h-7 flex items-center justify-center
+                    rounded border border-[hsl(var(--border))]
+                    text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-hover))]
+                    disabled:opacity-30 disabled:cursor-not-allowed
+                    transition-all duration-100 cursor-pointer
+                  "
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+                <span className="text-xs text-[hsl(var(--text-secondary))] px-2 tabular-nums">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="
+                    w-7 h-7 flex items-center justify-center
+                    rounded border border-[hsl(var(--border))]
+                    text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-hover))]
+                    disabled:opacity-30 disabled:cursor-not-allowed
+                    transition-all duration-100 cursor-pointer
+                  "
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -14,10 +14,12 @@ export const AuditDiscrepancies = ({ items = [], isClosed = false }) => {
 
   if (discrepancies.length === 0) {
     return (
-      <div className="border border-success/20 bg-success/5 rounded-lg p-6 text-center space-y-2">
-        <ShieldCheck className="w-8 h-8 text-success mx-auto" />
-        <h4 className="font-semibold text-text-primary text-xs">No Discrepancies Found</h4>
-        <p className="text-text-secondary text-xxs leading-relaxed">
+      <div className="border border-[hsl(var(--success)/0.20)] bg-[hsl(var(--success)/0.05)] rounded-lg p-6 text-center space-y-2">
+        <ShieldCheck className="w-8 h-8 text-[hsl(var(--success))] mx-auto" />
+        <h4 className="font-semibold text-[hsl(var(--text-primary))] text-xs">
+          No Discrepancies Found
+        </h4>
+        <p className="text-[hsl(var(--text-secondary))] text-xxs leading-relaxed">
           All audited assets in this scope were verified successfully in on-site locations.
         </p>
       </div>
@@ -25,16 +27,16 @@ export const AuditDiscrepancies = ({ items = [], isClosed = false }) => {
   }
 
   return (
-    <div className="border border-border/80 rounded-lg overflow-hidden bg-surface">
+    <div className="border border-[hsl(var(--border)/0.80)] rounded-lg overflow-hidden bg-[hsl(var(--surface))]">
       {/* Panel Header */}
-      <div className="bg-surface/50 border-b border-border p-4 flex items-center justify-between">
+      <div className="bg-[hsl(var(--surface))]/50 border-b border-[hsl(var(--border))] p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-destructive" />
-          <h4 className="font-bold text-xs text-text-primary">
+          <AlertTriangle className="w-4 h-4 text-[hsl(var(--danger))]" />
+          <h4 className="font-bold text-xs text-[hsl(var(--text-primary))]">
             Compliance Discrepancies Log ({discrepancies.length})
           </h4>
         </div>
-        <span className="text-[10px] text-text-secondary bg-background px-2.5 py-0.5 rounded border border-border">
+        <span className="text-[10px] text-[hsl(var(--text-secondary))] bg-[hsl(var(--background))] px-2.5 py-0.5 rounded border border-[hsl(var(--border))]">
           {isClosed ? 'Locked & Reconciled' : 'Draft Reconciliation'}
         </span>
       </div>
@@ -43,7 +45,7 @@ export const AuditDiscrepancies = ({ items = [], isClosed = false }) => {
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xxs">
           <thead>
-            <tr className="border-b border-border/60 bg-background text-text-secondary">
+            <tr className="border-b border-[hsl(var(--border)/0.60)] bg-[hsl(var(--background))] text-[hsl(var(--text-secondary))]">
               <th className="p-3 font-semibold">Asset Tag</th>
               <th className="p-3 font-semibold">Asset Name</th>
               <th className="p-3 font-semibold">Audited Status</th>
@@ -55,47 +57,58 @@ export const AuditDiscrepancies = ({ items = [], isClosed = false }) => {
             {discrepancies.map((item) => {
               const isMissing = item.status === 'MISSING';
               return (
-                <tr key={item.id} className="hover:bg-surface-hover/30 transition-all">
+                <tr
+                  key={item.id}
+                  className="hover:bg-[hsl(var(--surface))]-hover/30 transition-all"
+                >
                   {/* Asset Tag */}
-                  <td className="p-3 font-mono font-bold text-text-primary whitespace-nowrap">
+                  <td className="p-3 font-mono font-bold text-[hsl(var(--text-primary))] whitespace-nowrap">
                     {item.asset?.assetTag || 'N/A'}
                   </td>
                   {/* Asset Name */}
-                  <td className="p-3 text-text-primary font-medium">{item.asset?.name || 'N/A'}</td>
+                  <td className="p-3 text-[hsl(var(--text-primary))] font-medium">
+                    {item.asset?.name || 'N/A'}
+                  </td>
                   {/* Audited Status badge */}
                   <td className="p-3">
                     <span
                       className={`px-2 py-0.5 border rounded text-[9px] font-bold ${
                         isMissing
-                          ? 'bg-destructive/10 text-destructive border-destructive/20'
-                          : 'bg-warning/10 text-warning border-warning/20'
+                          ? 'bg-[hsl(var(--danger)/0.10)] text-[hsl(var(--danger))] border-[hsl(var(--danger))]/20'
+                          : 'bg-[hsl(var(--warning)/0.10)] text-[hsl(var(--warning))] border-[hsl(var(--warning)/0.20)]'
                       }`}
                     >
                       {item.status}
                     </span>
                   </td>
                   {/* Observations */}
-                  <td className="p-3 text-text-secondary leading-relaxed max-w-xs truncate">
-                    {item.notes || <span className="text-text-muted/60 italic">No notes recorded</span>}
+                  <td className="p-3 text-[hsl(var(--text-secondary))] leading-relaxed max-w-xs truncate">
+                    {item.notes || (
+                      <span className="text-[hsl(var(--text-muted))]/60 italic">
+                        No notes recorded
+                      </span>
+                    )}
                   </td>
                   {/* Action on Close */}
                   <td className="p-3">
                     {isClosed ? (
-                      <div className="flex items-center gap-1.5 text-text-primary">
+                      <div className="flex items-center gap-1.5 text-[hsl(var(--text-primary))]">
                         {isMissing ? (
                           <>
-                            <HelpCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
+                            <HelpCircle className="w-3.5 h-3.5 text-[hsl(var(--danger))] shrink-0" />
                             <span>Cascaded status to LOST</span>
                           </>
                         ) : (
                           <>
-                            <Hammer className="w-3.5 h-3.5 text-warning shrink-0" />
+                            <Hammer className="w-3.5 h-3.5 text-[hsl(var(--warning))] shrink-0" />
                             <span>Dispatched Repair Ticket</span>
                           </>
                         )}
                       </div>
                     ) : (
-                      <span className="text-text-muted italic">Pending cycle closure</span>
+                      <span className="text-[hsl(var(--text-muted))] italic">
+                        Pending cycle closure
+                      </span>
                     )}
                   </td>
                 </tr>

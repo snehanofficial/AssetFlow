@@ -63,7 +63,11 @@ export const MaintenanceKanban = () => {
   });
 
   // React Hook Forms for approve/resolve in details dialog
-  const { register: registerAction, handleSubmit: handleSubmitAction, reset: resetAction } = useForm();
+  const {
+    register: registerAction,
+    handleSubmit: handleSubmitAction,
+    reset: resetAction,
+  } = useForm();
 
   // Mutations
   const raiseMutation = useMutation({
@@ -140,10 +144,26 @@ export const MaintenanceKanban = () => {
 
   // Kanban column definitions
   const columns = [
-    { id: 'PENDING', label: 'Pending Review', color: 'border-warning/40 text-warning bg-warning/5' },
-    { id: 'IN_PROGRESS', label: 'In Progress / Assigned', color: 'border-primary/40 text-primary bg-primary/5' },
-    { id: 'RESOLVED', label: 'Resolved', color: 'border-success/40 text-success bg-success/5' },
-    { id: 'REJECTED', label: 'Rejected', color: 'border-destructive/40 text-destructive bg-destructive/5' },
+    {
+      id: 'PENDING',
+      label: 'Pending Review',
+      color: 'border-warning/40 text-[hsl(var(--warning))] bg-warning/5',
+    },
+    {
+      id: 'IN_PROGRESS',
+      label: 'In Progress / Assigned',
+      color: 'border-primary/40 text-[hsl(var(--primary))] bg-primary/5',
+    },
+    {
+      id: 'RESOLVED',
+      label: 'Resolved',
+      color: 'border-success/40 text-[hsl(var(--success))] bg-success/5',
+    },
+    {
+      id: 'REJECTED',
+      label: 'Rejected',
+      color: 'border-destructive/40 text-destructive bg-destructive/5',
+    },
   ];
 
   const getPriorityStyle = (p) => {
@@ -151,11 +171,11 @@ export const MaintenanceKanban = () => {
       case 'CRITICAL':
         return 'bg-destructive/15 text-destructive border-destructive/30';
       case 'HIGH':
-        return 'bg-warning/15 text-warning border-warning/30';
+        return 'bg-warning/15 text-[hsl(var(--warning))] border-warning/30';
       case 'MEDIUM':
-        return 'bg-blue-500/15 text-blue-400 border-blue-500/30';
+        return 'bg-blue-500/15 text-blue-400 border-[hsl(var(--info)/0.30)]';
       default:
-        return 'bg-text-muted/15 text-text-muted border-text-muted/30';
+        return 'bg-text-muted/15 text-[hsl(var(--text-muted))] border-text-muted/30';
     }
   };
 
@@ -168,16 +188,16 @@ export const MaintenanceKanban = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="font-display text-2xl font-bold tracking-tight text-text-primary">
+          <h1 className="font-display text-2xl font-bold tracking-tight text-[hsl(var(--text-primary))]">
             Maintenance & Repair dispatch
           </h1>
-          <p className="text-text-secondary text-xs">
+          <p className="text-[hsl(var(--text-secondary))] text-xs">
             Triage and process repair tasks across departments.
           </p>
         </div>
         <button
           onClick={() => setShowRaiseModal(true)}
-          className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-xs py-2 px-4 rounded-md transition-all cursor-pointer inline-flex items-center gap-1.5 self-start sm:self-auto shadow-lg shadow-primary/20"
+          className="bg-primary hover:bg-primary-hover text-[hsl(var(--primary))]-foreground font-semibold text-xs py-2 px-4 rounded-md transition-all cursor-pointer inline-flex items-center gap-1.5 self-start sm:self-auto shadow-lg shadow-primary/20"
         >
           <Plus className="w-4 h-4" />
           Raise Repair Request
@@ -185,7 +205,7 @@ export const MaintenanceKanban = () => {
       </div>
 
       {loadingTickets ? (
-        <div className="text-center py-20 text-text-muted text-xs animate-pulse">
+        <div className="text-center py-20 text-[hsl(var(--text-muted))] text-xs animate-pulse">
           Loading kanban board...
         </div>
       ) : (
@@ -196,40 +216,50 @@ export const MaintenanceKanban = () => {
             return (
               <div key={col.id} className="w-80 shrink-0 flex flex-col gap-4">
                 {/* Column header */}
-                <div className={`border rounded-lg px-4 py-2.5 flex justify-between items-center ${col.color}`}>
-                  <span className="text-xs font-semibold uppercase tracking-wider">{col.label}</span>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-background/50">
+                <div
+                  className={`border rounded-lg px-4 py-2.5 flex justify-between items-center ${col.color}`}
+                >
+                  <span className="text-xs font-semibold uppercase tracking-wider">
+                    {col.label}
+                  </span>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[hsl(var(--background))]/50">
                     {colTickets.length}
                   </span>
                 </div>
 
                 {/* Column body */}
-                <div className="flex flex-col gap-3 min-h-[450px] bg-surface/10 rounded-lg p-2 border border-border/20 max-h-[550px] overflow-y-auto">
+                <div className="flex flex-col gap-3 min-h-[450px] bg-[hsl(var(--surface))]/10 rounded-lg p-2 border border-[hsl(var(--border))]/20 max-h-[550px] overflow-y-auto">
                   {colTickets.length > 0 ? (
                     colTickets.map((t) => (
                       <div
                         key={t.id}
                         onClick={() => setSelectedTicket(t)}
-                        className="card-elevation p-4 space-y-3 cursor-pointer hover:border-primary/25 hover:translate-y-[-2px] transition-all select-none bg-surface/50"
+                        className="card-elevation p-4 space-y-3 cursor-pointer hover:border-primary/25 hover:translate-y-[-2px] transition-all select-none bg-[hsl(var(--surface))]/50"
                       >
                         <div className="flex justify-between items-center gap-2">
-                          <span className="font-mono text-[9px] font-bold text-text-primary bg-background px-1.5 py-0.5 rounded border border-border">
+                          <span className="font-mono text-[9px] font-bold text-[hsl(var(--text-primary))] bg-[hsl(var(--background))] px-1.5 py-0.5 rounded border border-[hsl(var(--border))]">
                             {t.asset.assetTag}
                           </span>
-                          <span className={`px-2 py-0.5 rounded text-[8px] font-bold border ${getPriorityStyle(t.priority)}`}>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[8px] font-bold border ${getPriorityStyle(t.priority)}`}
+                          >
                             {t.priority}
                           </span>
                         </div>
-                        <h4 className="font-bold text-xs text-text-primary leading-snug">{t.asset.name}</h4>
-                        <p className="text-text-secondary text-xxs line-clamp-2 leading-relaxed">{t.description}</p>
-                        <div className="flex items-center gap-1.5 text-[9px] text-text-muted pt-1.5 border-t border-border/30">
+                        <h4 className="font-bold text-xs text-[hsl(var(--text-primary))] leading-snug">
+                          {t.asset.name}
+                        </h4>
+                        <p className="text-[hsl(var(--text-secondary))] text-xxs line-clamp-2 leading-relaxed">
+                          {t.description}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-[9px] text-[hsl(var(--text-muted))] pt-1.5 border-t border-[hsl(var(--border))]/30">
                           <User className="w-3.5 h-3.5" />
                           <span>By: {t.requestedBy.name}</span>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="h-48 border border-dashed border-border/40 rounded-lg flex items-center justify-center text-text-muted text-xxs italic">
+                    <div className="h-48 border border-dashed border-[hsl(var(--border))]/40 rounded-lg flex items-center justify-center text-[hsl(var(--text-muted))] text-xxs italic">
                       No tickets
                     </div>
                   )}
@@ -243,49 +273,51 @@ export const MaintenanceKanban = () => {
       {/* Ticket Details Dialog */}
       {selectedTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-surface border border-border w-full max-w-lg rounded-lg p-6 space-y-6 shadow-2xl relative animate-slide-up">
+          <div className="bg-[hsl(var(--surface))] border border-[hsl(var(--border))] w-full max-w-lg rounded-lg p-6 space-y-6 shadow-2xl relative animate-slide-up">
             <button
               onClick={() => {
                 setSelectedTicket(null);
                 resetAction();
               }}
-              className="absolute top-4 right-4 p-1.5 text-text-muted hover:text-text-primary rounded-md hover:bg-surface-hover transition-all cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text-primary))] rounded-md hover:bg-[hsl(var(--surface))]-hover transition-all cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
 
             <div className="space-y-2">
               <div className="flex items-center gap-2.5">
-                <span className="font-mono text-xxs font-bold text-text-primary bg-background px-2 py-0.5 rounded border border-border">
+                <span className="font-mono text-xxs font-bold text-[hsl(var(--text-primary))] bg-[hsl(var(--background))] px-2 py-0.5 rounded border border-[hsl(var(--border))]">
                   {selectedTicket.asset.assetTag}
                 </span>
-                <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${getPriorityStyle(selectedTicket.priority)}`}>
+                <span
+                  className={`px-2 py-0.5 rounded text-[9px] font-bold border ${getPriorityStyle(selectedTicket.priority)}`}
+                >
                   {selectedTicket.priority}
                 </span>
               </div>
-              <h3 className="font-display font-bold text-lg text-text-primary">
+              <h3 className="font-display font-bold text-lg text-[hsl(var(--text-primary))]">
                 {selectedTicket.asset.name}
               </h3>
             </div>
 
-            <div className="space-y-4 border-t border-b border-border/40 py-4 text-xs text-text-secondary">
+            <div className="space-y-4 border-t border-b border-[hsl(var(--border))]/40 py-4 text-xs text-[hsl(var(--text-secondary))]">
               <div className="space-y-1">
-                <h4 className="font-semibold text-text-primary">Issue Description</h4>
-                <p className="leading-relaxed bg-background/50 border border-border/30 p-3 rounded-md italic">
+                <h4 className="font-semibold text-[hsl(var(--text-primary))]">Issue Description</h4>
+                <p className="leading-relaxed bg-[hsl(var(--background))]/50 border border-[hsl(var(--border))]/30 p-3 rounded-md italic">
                   "{selectedTicket.description}"
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-xxs">
                 <div>
-                  <span className="text-text-muted">Reported by:</span>
-                  <p className="font-medium text-text-primary mt-0.5">
+                  <span className="text-[hsl(var(--text-muted))]">Reported by:</span>
+                  <p className="font-medium text-[hsl(var(--text-primary))] mt-0.5">
                     {selectedTicket.requestedBy?.name} ({selectedTicket.requestedBy?.email})
                   </p>
                 </div>
                 <div>
-                  <span className="text-text-muted">Date Raised:</span>
-                  <p className="font-medium text-text-primary mt-0.5">
+                  <span className="text-[hsl(var(--text-muted))]">Date Raised:</span>
+                  <p className="font-medium text-[hsl(var(--text-primary))] mt-0.5">
                     {new Date(selectedTicket.createdAt).toLocaleString()}
                   </p>
                 </div>
@@ -294,15 +326,15 @@ export const MaintenanceKanban = () => {
               {selectedTicket.assignedTo && (
                 <div className="text-xxs grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-text-muted">Assigned Technician:</span>
-                    <p className="font-medium text-primary mt-0.5">
+                    <span className="text-[hsl(var(--text-muted))]">Assigned Technician:</span>
+                    <p className="font-medium text-[hsl(var(--primary))] mt-0.5">
                       {selectedTicket.assignedTo.name} ({selectedTicket.assignedTo.email})
                     </p>
                   </div>
                   {selectedTicket.approvedBy && (
                     <div>
-                      <span className="text-text-muted">Approved By:</span>
-                      <p className="font-medium text-text-primary mt-0.5">
+                      <span className="text-[hsl(var(--text-muted))]">Approved By:</span>
+                      <p className="font-medium text-[hsl(var(--text-primary))] mt-0.5">
                         {selectedTicket.approvedBy.name}
                       </p>
                     </div>
@@ -314,23 +346,31 @@ export const MaintenanceKanban = () => {
             {/* Action forms based on status */}
             {selectedTicket.status === 'PENDING' && isManager && (
               <div className="space-y-4">
-                <h4 className="font-semibold text-xs text-text-primary">Dispatch Management</h4>
-                
+                <h4 className="font-semibold text-xs text-[hsl(var(--text-primary))]">
+                  Dispatch Management
+                </h4>
+
                 {/* Approve/Assign form */}
                 <form
                   onSubmit={handleSubmitAction((data) =>
-                    approveMutation.mutate({ id: selectedTicket.id, assignedToId: data.assignedToId })
+                    approveMutation.mutate({
+                      id: selectedTicket.id,
+                      assignedToId: data.assignedToId,
+                    })
                   )}
                   className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end border border-primary/20 bg-primary/5 p-4 rounded-lg"
                 >
                   <div className="sm:col-span-2 space-y-1">
-                    <label className="text-text-secondary text-xxs font-semibold" htmlFor="tech-select">
+                    <label
+                      className="text-[hsl(var(--text-secondary))] text-xxs font-semibold"
+                      htmlFor="tech-select"
+                    >
                       Select Technician
                     </label>
                     <select
                       id="tech-select"
                       required
-                      className="w-full bg-background border border-border rounded-md px-2 py-1.5 text-xs text-text-primary focus:outline-none focus:border-primary"
+                      className="w-full bg-[hsl(var(--background))] border border-[hsl(var(--border))] rounded-md px-2 py-1.5 text-xs text-[hsl(var(--text-primary))] focus:outline-none focus:border-primary"
                       {...registerAction('assignedToId')}
                     >
                       <option value="">Choose technician...</option>
@@ -344,7 +384,7 @@ export const MaintenanceKanban = () => {
                   <button
                     type="submit"
                     disabled={approveMutation.isPending}
-                    className="w-full bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-xs py-2 rounded-md transition-all cursor-pointer shadow-md shadow-primary/10 h-[32px] flex items-center justify-center"
+                    className="w-full bg-primary hover:bg-primary-hover text-[hsl(var(--primary))]-foreground font-semibold text-xs py-2 rounded-md transition-all cursor-pointer shadow-md shadow-primary/10 h-[32px] flex items-center justify-center"
                   >
                     Approve & Assign
                   </button>
@@ -358,14 +398,17 @@ export const MaintenanceKanban = () => {
                   className="flex flex-col gap-2 border border-destructive/20 bg-destructive/5 p-4 rounded-lg"
                 >
                   <div className="space-y-1">
-                    <label className="text-text-secondary text-xxs font-semibold" htmlFor="reject-reason">
+                    <label
+                      className="text-[hsl(var(--text-secondary))] text-xxs font-semibold"
+                      htmlFor="reject-reason"
+                    >
                       Rejection Reason
                     </label>
                     <textarea
                       id="reject-reason"
                       required
                       rows={2}
-                      className="w-full bg-background border border-border rounded-md px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-destructive resize-none"
+                      className="w-full bg-[hsl(var(--background))] border border-[hsl(var(--border))] rounded-md px-2.5 py-1.5 text-xs text-[hsl(var(--text-primary))] focus:outline-none focus:border-destructive resize-none"
                       placeholder="Input the exact triage rejection reason..."
                       {...registerAction('reason')}
                     />
@@ -385,22 +428,28 @@ export const MaintenanceKanban = () => {
               (selectedTicket.assignedToId === user?.id || isManager) && (
                 <form
                   onSubmit={handleSubmitAction((data) =>
-                    resolveMutation.mutate({ id: selectedTicket.id, resolutionNotes: data.resolutionNotes })
+                    resolveMutation.mutate({
+                      id: selectedTicket.id,
+                      resolutionNotes: data.resolutionNotes,
+                    })
                   )}
                   className="space-y-3 bg-success/5 border border-success/20 p-4 rounded-lg"
                 >
-                  <h4 className="font-semibold text-xs text-success flex items-center gap-1.5">
+                  <h4 className="font-semibold text-xs text-[hsl(var(--success))] flex items-center gap-1.5">
                     <CheckCircle className="w-4 h-4" /> Repair Resolution Logs
                   </h4>
                   <div className="space-y-1">
-                    <label className="text-text-secondary text-xxs font-semibold" htmlFor="resolution-notes">
+                    <label
+                      className="text-[hsl(var(--text-secondary))] text-xxs font-semibold"
+                      htmlFor="resolution-notes"
+                    >
                       Completion / Resolution Notes
                     </label>
                     <textarea
                       id="resolution-notes"
                       required
                       rows={2.5}
-                      className="w-full bg-background border border-border rounded-md px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-success resize-none"
+                      className="w-full bg-[hsl(var(--background))] border border-[hsl(var(--border))] rounded-md px-2.5 py-1.5 text-xs text-[hsl(var(--text-primary))] focus:outline-none focus:border-success resize-none"
                       placeholder="Detail replacement parts, tests completed, or issues resolved..."
                       {...registerAction('resolutionNotes')}
                     />
@@ -408,7 +457,7 @@ export const MaintenanceKanban = () => {
                   <button
                     type="submit"
                     disabled={resolveMutation.isPending}
-                    className="w-full bg-success hover:bg-success-hover text-success-foreground font-semibold text-xs py-2 rounded-md transition-all cursor-pointer shadow-md shadow-success/15"
+                    className="w-full bg-success hover:bg-success-hover text-[hsl(var(--success))]-foreground font-semibold text-xs py-2 rounded-md transition-all cursor-pointer shadow-md shadow-success/15"
                   >
                     Mark Repair Resolved
                   </button>
@@ -417,15 +466,15 @@ export const MaintenanceKanban = () => {
 
             {/* Resolved / Rejected status summaries */}
             {['RESOLVED', 'REJECTED'].includes(selectedTicket.status) && (
-              <div className="p-4 bg-surface/50 border border-border/40 rounded-lg space-y-2 text-xxs">
-                <span className="font-semibold text-text-primary uppercase tracking-wider block">
+              <div className="p-4 bg-[hsl(var(--surface))]/50 border border-[hsl(var(--border))]/40 rounded-lg space-y-2 text-xxs">
+                <span className="font-semibold text-[hsl(var(--text-primary))] uppercase tracking-wider block">
                   {selectedTicket.status === 'RESOLVED' ? 'Resolution Log' : 'Rejection Reason'}
                 </span>
-                <p className="text-text-primary italic leading-relaxed bg-background/50 p-3 border border-border/20 rounded">
+                <p className="text-[hsl(var(--text-primary))] italic leading-relaxed bg-[hsl(var(--background))]/50 p-3 border border-[hsl(var(--border))]/20 rounded">
                   "{selectedTicket.resolutionNotes}"
                 </p>
                 {selectedTicket.completedAt && (
-                  <p className="text-text-muted mt-1">
+                  <p className="text-[hsl(var(--text-muted))] mt-1">
                     Completed on: {new Date(selectedTicket.completedAt).toLocaleString()}
                   </p>
                 )}
@@ -438,33 +487,39 @@ export const MaintenanceKanban = () => {
       {/* Raise Repair Modal */}
       {showRaiseModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-surface border border-border w-full max-w-md rounded-lg p-6 space-y-6 shadow-2xl relative animate-slide-up">
+          <div className="bg-[hsl(var(--surface))] border border-[hsl(var(--border))] w-full max-w-md rounded-lg p-6 space-y-6 shadow-2xl relative animate-slide-up">
             <button
               onClick={() => setShowRaiseModal(false)}
-              className="absolute top-4 right-4 p-1.5 text-text-muted hover:text-text-primary rounded-md hover:bg-surface-hover transition-all cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text-primary))] rounded-md hover:bg-[hsl(var(--surface))]-hover transition-all cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
 
             <div className="space-y-1">
-              <h3 className="font-display font-bold text-lg text-text-primary">
+              <h3 className="font-display font-bold text-lg text-[hsl(var(--text-primary))]">
                 Raise Repair Request
               </h3>
-              <p className="text-text-secondary text-xs">
+              <p className="text-[hsl(var(--text-secondary))] text-xs">
                 Report defect details to raise a maintenance dispatch ticket.
               </p>
             </div>
 
-            <form onSubmit={handleSubmitRaise((data) => raiseMutation.mutate(data))} className="space-y-4">
+            <form
+              onSubmit={handleSubmitRaise((data) => raiseMutation.mutate(data))}
+              className="space-y-4"
+            >
               {/* Asset Selector */}
               <div className="space-y-1">
-                <label className="text-text-secondary text-xs font-semibold" htmlFor="raise-asset-select">
+                <label
+                  className="text-[hsl(var(--text-secondary))] text-xs font-semibold"
+                  htmlFor="raise-asset-select"
+                >
                   Select Asset
                 </label>
                 <select
                   id="raise-asset-select"
-                  className={`w-full bg-background border rounded-md px-3 py-2 text-sm text-text-primary focus:outline focus:border-primary ${
-                    raiseErrors.assetId ? 'border-destructive' : 'border-border'
+                  className={`w-full bg-[hsl(var(--background))] border rounded-md px-3 py-2 text-sm text-[hsl(var(--text-primary))] focus:outline focus:border-primary ${
+                    raiseErrors.assetId ? 'border-destructive' : 'border-[hsl(var(--border))]'
                   }`}
                   {...registerRaise('assetId', { required: 'Please select the defect asset.' })}
                 >
@@ -484,12 +539,15 @@ export const MaintenanceKanban = () => {
 
               {/* Priority Select */}
               <div className="space-y-1">
-                <label className="text-text-secondary text-xs font-semibold" htmlFor="raise-priority-select">
+                <label
+                  className="text-[hsl(var(--text-secondary))] text-xs font-semibold"
+                  htmlFor="raise-priority-select"
+                >
                   Severity / Priority
                 </label>
                 <select
                   id="raise-priority-select"
-                  className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:outline focus:border-primary"
+                  className="w-full bg-[hsl(var(--background))] border border-[hsl(var(--border))] rounded-md px-3 py-2 text-sm text-[hsl(var(--text-primary))] focus:outline focus:border-primary"
                   {...registerRaise('priority')}
                 >
                   <option value="LOW">LOW</option>
@@ -501,14 +559,17 @@ export const MaintenanceKanban = () => {
 
               {/* Description */}
               <div className="space-y-1">
-                <label className="text-text-secondary text-xs font-semibold" htmlFor="raise-desc-input">
+                <label
+                  className="text-[hsl(var(--text-secondary))] text-xs font-semibold"
+                  htmlFor="raise-desc-input"
+                >
                   Defect Description
                 </label>
                 <textarea
                   id="raise-desc-input"
                   rows={4}
-                  className={`w-full bg-background border rounded-md px-3 py-2 text-sm text-text-primary focus:outline focus:border-primary resize-none ${
-                    raiseErrors.description ? 'border-destructive' : 'border-border'
+                  className={`w-full bg-[hsl(var(--background))] border rounded-md px-3 py-2 text-sm text-[hsl(var(--text-primary))] focus:outline focus:border-primary resize-none ${
+                    raiseErrors.description ? 'border-destructive' : 'border-[hsl(var(--border))]'
                   }`}
                   placeholder="Provide precise defect details (e.g. cracked screen, grinding noises, faulty battery)..."
                   {...registerRaise('description', {
@@ -530,7 +591,7 @@ export const MaintenanceKanban = () => {
               <button
                 type="submit"
                 disabled={raiseMutation.isPending}
-                className="w-full bg-primary hover:bg-primary-hover disabled:bg-primary/55 disabled:opacity-50 text-primary-foreground font-semibold text-sm py-2 rounded-md transition-all cursor-pointer flex items-center justify-center gap-2 mt-2 shadow-lg shadow-primary/20"
+                className="w-full bg-primary hover:bg-primary-hover disabled:bg-primary/55 disabled:opacity-50 text-[hsl(var(--primary))]-foreground font-semibold text-sm py-2 rounded-md transition-all cursor-pointer flex items-center justify-center gap-2 mt-2 shadow-lg shadow-primary/20"
               >
                 {raiseMutation.isPending ? (
                   <>

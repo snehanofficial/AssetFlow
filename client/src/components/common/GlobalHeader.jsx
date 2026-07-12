@@ -1,91 +1,166 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Sun, Moon, LogOut, Search, Bell } from 'lucide-react';
-import { useTheme } from './Providers.jsx';
+import { Sun, Moon, Bell, Menu, Search } from 'lucide-react';
+import { useTheme, useSidebar } from './Providers.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useQuery } from '@tanstack/react-query';
 import apiFetch from '../../utils/api.js';
 
+// ─── Path label map ───────────────────────────────────────────────────────────
+const PATH_LABELS = {
+  '/dashboard': 'Dashboard',
+  '/assets': 'Asset Directory',
+  '/allocations': 'Allocations',
+  '/bookings': 'Bookings',
+  '/maintenance': 'Maintenance',
+  '/audits': 'Audits',
+  '/reports': 'Reports & Analytics',
+  '/notifications': 'Notifications',
+  '/organization': 'Organization',
+  '/admin/org-setup': 'Admin Setup',
+  '/admin/audit-logs': 'Activity Logs',
+};
+
+const getPageTitle = (pathname) => {
+  // Exact match first
+  if (PATH_LABELS[pathname]) return PATH_LABELS[pathname];
+  // Prefix match
+  const match = Object.keys(PATH_LABELS).find((key) => pathname.startsWith(key) && key !== '/');
+  return match ? PATH_LABELS[match] : 'AssetFlow';
+};
+
+// ─── GlobalHeader ─────────────────────────────────────────────────────────────
 export const GlobalHeader = () => {
   const { theme, toggleTheme } = useTheme();
-  const { logout, user } = useAuth();
+  const { openMobile } = useSidebar();
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Fetch unread notification counts (poll every 20 seconds)
+  // Fetch unread notification count
   const { data: notificationsResponse } = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: () => apiFetch('/notifications'),
     enabled: !!user,
-    refetchInterval: 20000,
+    refetchInterval: 20_000,
+    staleTime: 0,
   });
 
-  const unreadCount = notificationsResponse?.data?.unreadCount || 0;
-
-  // Simple path parser for title
-  const getPageTitle = () => {
-    const path = location.pathname.split('/')[1] || '';
-    if (!path) return 'Dashboard';
-    return path.charAt(0).toUpperCase() + path.slice(1);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
+  const unreadCount = notificationsResponse?.data?.unreadCount ?? 0;
+  const pageTitle = getPageTitle(location.pathname);
 
   return (
-    <header className="h-16 border-b border-border bg-surface flex items-center justify-between px-8 sticky top-0 z-40">
-      {/* Title / Breadcrumbs */}
-      <div className="flex items-center gap-2">
-        <span className="text-text-muted text-xs font-semibold uppercase tracking-wider">
-          AssetFlow
-        </span>
-        <span className="text-border">/</span>
-        <span className="text-sm font-semibold text-text-primary">{getPageTitle()}</span>
-      </div>
-
-      {/* Global search */}
-      <div className="hidden md:flex items-center w-96 max-w-lg bg-background border border-border rounded-md px-3 py-1.5 gap-2">
-        <Search className="w-4 h-4 text-text-muted" />
-        <input
-          type="text"
-          placeholder="Global search assets, bookings, tickets..."
-          className="bg-transparent border-none outline-none text-text-primary text-sm placeholder-text-muted w-full"
-        />
-      </div>
-
-      {/* Action controls */}
-      <div className="flex items-center gap-4">
-        {/* Toggle Theme button */}
+    <header
+      className="
+        h-14 flex-shrink-0 z-30 sticky top-0
+        flex items-center justify-between
+        px-4 md:px-6
+        bg-[hsl(var(--surface))]
+        border-b border-[hsl(var(--border))]
+      "
+      role="banner"
+    >
+      {/* ── Left: Hamburger (mobile) + Breadcrumb ── */}
+      <div className="flex items-center gap-3 min-w-0">
+        {/* Mobile hamburger */}
         <button
-          onClick={toggleTheme}
-          className="p-2 rounded-md hover:bg-surface-hover text-text-secondary hover:text-text-primary transition-all cursor-pointer"
-          title="Toggle theme"
+          onClick={openMobile}
+          className="
+            lg:hidden
+            w-8 h-8 flex items-center justify-center rounded-lg
+            text-[hsl(var(--text-secondary))]
+            hover:text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-hover))]
+            transition-colors duration-100 cursor-pointer flex-shrink-0
+          "
+          aria-label="Open navigation menu"
         >
-          {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          <Menu className="w-5 h-5" aria-hidden="true" />
         </button>
 
-        {/* Notifications badge */}
-        <button
-          onClick={() => navigate('/notifications')}
-          className="p-2 rounded-md hover:bg-surface-hover text-text-secondary hover:text-text-primary relative transition-all cursor-pointer"
-          title="Notifications"
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-1.5 min-w-0" aria-label="Breadcrumb">
+          <span className="hidden sm:block text-[11px] font-semibold uppercase tracking-widest text-[hsl(var(--text-muted))]">
+            AssetFlow
+          </span>
+          <span className="hidden sm:block text-[hsl(var(--border))] text-xs">/</span>
+          <span className="text-sm font-semibold text-[hsl(var(--text-primary))] truncate">
+            {pageTitle}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Center: Global Search (desktop) ── */}
+      <div className="hidden md:flex flex-1 max-w-sm mx-6">
+        <div
+          className="
+            flex items-center gap-2 w-full
+            bg-[hsl(var(--background))] border border-[hsl(var(--border))]
+            rounded-lg px-3 py-1.5
+            text-xs text-[hsl(var(--text-muted))]
+            cursor-text
+            hover:border-[hsl(var(--ring)/0.50)] transition-colors duration-100
+          "
+          role="search"
+          aria-label="Global search"
         >
-          <Bell className="w-4 h-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-destructive text-[8px] font-bold text-white leading-none shadow-sm animate-pulse">
-              {unreadCount}
-            </span>
+          <Search className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+          <span className="flex-1 text-[hsl(var(--text-muted))]">Search assets, bookings...</span>
+          <kbd className="text-[10px] font-mono text-[hsl(var(--text-muted))] bg-[hsl(var(--surface))] border border-[hsl(var(--border))] rounded px-1.5 py-0.5 leading-none">
+            ⌘K
+          </kbd>
+        </div>
+      </div>
+
+      {/* ── Right: Actions ── */}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="
+            w-8 h-8 flex items-center justify-center rounded-lg
+            text-[hsl(var(--text-secondary))]
+            hover:text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-hover))]
+            transition-colors duration-100 cursor-pointer
+          "
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4" aria-hidden="true" />
+          ) : (
+            <Moon className="w-4 h-4" aria-hidden="true" />
           )}
         </button>
 
-        {/* Logout trigger */}
+        {/* Notifications */}
         <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-destructive hover:text-destructive-foreground hover:bg-destructive/10 border border-transparent hover:border-destructive/20 rounded-md transition-all cursor-pointer"
+          onClick={() => navigate('/notifications')}
+          className="
+            relative w-8 h-8 flex items-center justify-center rounded-lg
+            text-[hsl(var(--text-secondary))]
+            hover:text-[hsl(var(--text-primary))] hover:bg-[hsl(var(--surface-hover))]
+            transition-colors duration-100 cursor-pointer
+          "
+          aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+          title="Notifications"
         >
-          <LogOut className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Sign Out</span>
+          <Bell className="w-4 h-4" aria-hidden="true" />
+          {unreadCount > 0 && (
+            <span
+              className="
+                absolute -top-0.5 -right-0.5
+                min-w-[16px] h-4 px-1
+                flex items-center justify-center
+                rounded-full
+                bg-[hsl(var(--danger))]
+                text-[hsl(var(--danger-foreground))]
+                text-[9px] font-bold leading-none
+                shadow-sm
+              "
+              aria-hidden="true"
+            >
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </button>
       </div>
     </header>

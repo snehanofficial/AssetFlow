@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../components/common/Providers.jsx';
+import { Input } from '../../components/ui/Input.jsx';
+import { Button } from '../../components/ui/Button.jsx';
+import { PageHeader } from '../../components/ui/PageHeader.jsx';
 
 export const Login = () => {
   const { login } = useAuth();
@@ -37,90 +40,73 @@ export const Login = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-display font-bold text-text-primary">Sign In</h2>
-        <p className="text-text-secondary text-xs">
+        <h2 className="text-2xl font-display font-bold text-[hsl(var(--text-primary))]">Sign In</h2>
+        <p className="text-[hsl(var(--text-secondary))] text-xs">
           Enter your organizational credentials to access AssetFlow.
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Email Field */}
-        <div className="space-y-1">
-          <label className="text-text-secondary text-xs font-medium" htmlFor="email-input">
-            Email Address
-          </label>
-          <input
-            id="email-input"
-            type="email"
-            className={`w-full bg-background border rounded-md px-3 py-2 text-sm text-text-primary focus:outline ${
-              errors.email
-                ? 'border-destructive focus:border-destructive'
-                : 'border-border focus:border-primary'
-            }`}
-            placeholder="name@organization.com"
-            disabled={submitting}
-            {...register('email', {
-              required: 'Email address is required.',
-              pattern: {
-                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: 'Invalid email address format.',
-              },
-            })}
-          />
-          {errors.email && (
-            <p className="text-destructive text-xxs font-medium mt-1">{errors.email.message}</p>
-          )}
-        </div>
+        <Input
+          label="Email Address"
+          id="email-input"
+          type="email"
+          placeholder="name@organization.com"
+          disabled={submitting}
+          error={errors.email?.message}
+          {...register('email', {
+            required: 'Email address is required.',
+            pattern: {
+              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+              message: 'Invalid email address format.',
+            },
+          })}
+        />
 
         {/* Password Field */}
         <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="text-text-secondary text-xs font-medium" htmlFor="password-input">
+          <div className="flex items-center justify-between mb-1.5">
+            <label
+              className="text-[hsl(var(--text-secondary))] text-xs font-medium"
+              htmlFor="password-input"
+            >
               Password
             </label>
-            <Link to="/forgot-password" className="text-primary hover:underline text-xxs font-medium">
+            <Link
+              to="/forgot-password"
+              className="text-[hsl(var(--primary))] hover:underline text-[11px] font-medium"
+            >
               Forgot Password?
             </Link>
           </div>
-          <input
+          <Input
             id="password-input"
             type="password"
-            className={`w-full bg-background border rounded-md px-3 py-2 text-sm text-text-primary focus:outline ${
-              errors.password
-                ? 'border-destructive focus:border-destructive'
-                : 'border-border focus:border-primary'
-            }`}
             placeholder="••••••••"
             disabled={submitting}
+            error={errors.password?.message}
             {...register('password', {
               required: 'Password is required.',
             })}
           />
-          {errors.password && (
-            <p className="text-destructive text-xxs font-medium mt-1">{errors.password.message}</p>
-          )}
         </div>
 
         {/* Submit button */}
-        <button
+        <Button
           type="submit"
-          disabled={submitting}
-          className="w-full bg-primary hover:bg-primary-hover disabled:bg-primary/55 disabled:opacity-50 text-primary-foreground font-medium text-sm py-2 rounded-md transition-all cursor-pointer flex items-center justify-center gap-2"
+          variant="primary"
+          size="lg"
+          className="w-full mt-2"
+          isLoading={submitting}
         >
-          {submitting ? (
-            <>
-              <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
-              <span>Signing In...</span>
-            </>
-          ) : (
-            'Sign In'
-          )}
-        </button>
+          Sign In
+        </Button>
       </form>
 
-      <div className="text-center text-xs text-text-muted">
+      <div className="text-center text-xs text-[hsl(var(--text-muted))]">
         Don't have an account?{' '}
-        <Link to="/signup" className="text-primary hover:underline">
+        <Link to="/signup" className="text-[hsl(var(--primary))] hover:underline">
           Request registration
         </Link>
       </div>

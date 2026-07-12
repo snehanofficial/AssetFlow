@@ -5,14 +5,82 @@ import {
   ArrowRight,
   Calendar,
   Package,
-  ShieldAlert,
   UserCheck,
   Wrench,
+  ShieldAlert,
+  TrendingUp,
 } from 'lucide-react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { useAuth } from '../../context/AuthContext.jsx';
 import apiFetch from '../../utils/api.js';
 import QuickActions from './components/QuickActions.jsx';
+import { SkeletonDashboard } from '../../components/ui/Skeleton.jsx';
+import { Alert } from '../../components/ui/Alert.jsx';
+import { AssetStatusBadge } from '../../components/ui/Badge.jsx';
 
+// ─── Recharts custom tooltip ──────────────────────────────────────────────────
+const ChartTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="card-elevated px-3 py-2 shadow-xl text-xs">
+      <p className="font-semibold text-[hsl(var(--text-primary))] mb-1">{label}</p>
+      {payload.map((p) => (
+        <p key={p.dataKey} className="flex items-center gap-2" style={{ color: p.color }}>
+          <span className="w-2 h-2 rounded-full bg-current flex-shrink-0" aria-hidden="true" />
+          {p.name}: <span className="font-semibold ml-auto pl-3">{p.value}</span>
+        </p>
+      ))}
+    </div>
+  );
+};
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+const StatCard = ({ label, value, icon: Icon, colorClass, description, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`
+      card p-5 flex items-center justify-between
+      text-left w-full
+      transition-all duration-150
+      ${onClick ? 'cursor-pointer hover:border-[hsl(var(--ring)/0.40)] hover:shadow-md' : 'cursor-default'}
+      group
+    `}
+    aria-label={`${label}: ${value}`}
+  >
+    <div className="space-y-1.5 min-w-0">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-[hsl(var(--text-muted))]">
+        {label}
+      </p>
+      <p className="font-display text-3xl font-bold text-[hsl(var(--text-primary))] tabular-nums leading-none">
+        {value ?? '—'}
+      </p>
+      {description && (
+        <p className="text-[11px] text-[hsl(var(--text-secondary))]">{description}</p>
+      )}
+    </div>
+    <div
+      className={`
+        rounded-xl border p-3 flex-shrink-0 ml-4
+        transition-transform duration-150
+        ${onClick ? 'group-hover:scale-110' : ''}
+        ${colorClass}
+      `}
+      aria-hidden="true"
+    >
+      <Icon className="w-5 h-5" />
+    </div>
+  </button>
+);
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 export const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -24,7 +92,8 @@ export const Dashboard = () => {
   } = useQuery({
     queryKey: ['dashboard', 'metrics'],
     queryFn: () => apiFetch('/dashboard/metrics'),
-    refetchInterval: 15000,
+    refetchInterval: 15_000,
+    staleTime: 0,
   });
 
   const metrics = metricsResponse?.data || {
@@ -39,174 +108,231 @@ export const Dashboard = () => {
   const isManager = ['ADMIN', 'ASSET_MANAGER', 'DEPT_HEAD'].includes(user?.role);
   const overdueItems = Array.isArray(metrics.overdueReturns) ? metrics.overdueReturns : [];
 
+  // Build trend chart data from available/allocated
+  const trendData = [
+    { label: 'Available', value: metrics.available ?? 0 },
+    { label: 'Allocated', value: metrics.allocated ?? 0 },
+    { label: 'Bookings', value: metrics.activeBookings ?? 0 },
+    { label: 'Repairs', value: metrics.maintenanceToday ?? 0 },
+  ];
+
   const statCards = [
     {
       label: 'Available Assets',
       value: metrics.available,
       icon: Package,
-      color: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-      desc: 'Shared and ready for use',
+      colorClass:
+        'text-[hsl(var(--info))] bg-[hsl(var(--info)/0.10)] border-[hsl(var(--info)/0.20)]',
+      description: 'Ready for allocation',
+      onClick: () => navigate('/assets?status=AVAILABLE'),
     },
     {
       label: 'Active Allocations',
       value: metrics.allocated,
       icon: UserCheck,
-      color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-      desc: 'Currently checked out',
+      colorClass:
+        'text-[hsl(var(--success))] bg-[hsl(var(--success)/0.10)] border-[hsl(var(--success)/0.20)]',
+      description: 'Currently checked out',
+      onClick: () => navigate('/allocations'),
     },
     {
       label: 'Scheduled Bookings',
       value: metrics.activeBookings,
       icon: Calendar,
-      color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
-      desc: 'Upcoming or in-progress reservations',
+      colorClass:
+        'text-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.10)] border-[hsl(var(--primary)/0.20)]',
+      description: 'Active reservations',
+      onClick: () => navigate('/bookings'),
     },
     {
       label: 'Open Repairs',
       value: metrics.maintenanceToday,
       icon: Wrench,
-      color: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-      desc: 'Pending maintenance workload',
+      colorClass:
+        'text-[hsl(var(--warning))] bg-[hsl(var(--warning)/0.10)] border-[hsl(var(--warning)/0.20)]',
+      description: 'Pending maintenance',
+      onClick: () => navigate('/maintenance'),
     },
   ];
 
   const formatDate = (value) => {
     if (!value) return '';
-    return new Date(value).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
+    return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-8 bg-surface/50 w-48 rounded"></div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, idx) => (
-            <div key={idx} className="card-elevation h-28 rounded-lg bg-surface/50 p-6"></div>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="card-elevation h-72 rounded-lg bg-surface/50 p-6 lg:col-span-2"></div>
-          <div className="h-72 rounded-lg bg-surface/50"></div>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <SkeletonDashboard />;
 
   if (error) {
     return (
-      <div className="card-elevation space-y-3 border-destructive/20 bg-destructive/5 p-8 text-center">
-        <ShieldAlert className="mx-auto h-8 w-8 text-destructive" />
-        <h3 className="text-sm font-semibold text-text-primary">
-          Failed to load dashboard metrics
-        </h3>
-        <p className="text-xs text-text-secondary">{error.message || 'Server connection error.'}</p>
+      <div className="max-w-lg">
+        <Alert variant="danger" title="Failed to load dashboard metrics">
+          {error.message || 'Server connection error. Please refresh the page.'}
+        </Alert>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* ── Page Header ── */}
       <div className="space-y-1">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-text-primary">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-[hsl(var(--text-primary))]">
           System Overview
         </h1>
-        <p className="text-xs text-text-secondary">
-          Live tracking metrics, allocation activities, and maintenance alerts.
+        <p className="text-xs text-[hsl(var(--text-secondary))]">
+          Live asset metrics, allocation activities, and maintenance status.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-
-          return (
-            <div
-              key={card.label}
-              className="card-elevation flex items-center justify-between border border-border/30 p-6"
-            >
-              <div className="space-y-1">
-                <span className="block text-xs font-semibold uppercase tracking-wider text-text-muted">
-                  {card.label}
-                </span>
-                <span className="font-display text-2xl font-bold text-text-primary">
-                  {card.value}
-                </span>
-                <span className="block text-[11px] text-text-secondary">{card.desc}</span>
-              </div>
-              <div className={`rounded-xl border p-3 ${card.color}`}>
-                <Icon size={20} />
-              </div>
-            </div>
-          );
-        })}
+      {/* ── Stat Cards ── */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {statCards.map((card) => (
+          <StatCard key={card.label} {...card} />
+        ))}
       </div>
 
+      {/* ── Main Content Grid ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="card-elevation space-y-4 border border-border/30 p-6 lg:col-span-2">
-          <h3 className="text-sm font-semibold text-text-primary">Asset Allocation Trends</h3>
-          <div className="flex h-64 flex-col items-center justify-center rounded-lg border border-border/50 bg-background/50 p-6 text-center text-xs text-text-muted">
-            <span className="font-semibold">Chart visualization placeholder</span>
-            <span className="mt-2 max-w-sm text-[11px] text-text-muted/70">
-              Utilization analytics and peak booking heatmaps will surface here as reporting widgets
-              land.
-            </span>
+        {/* Allocation Trends Chart — 2 cols */}
+        <div className="card p-6 space-y-4 lg:col-span-2">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <h2 className="flex items-center gap-1.5 text-sm font-semibold text-[hsl(var(--text-primary))]">
+                <TrendingUp
+                  className="w-4 h-4 text-[hsl(var(--text-secondary))]"
+                  aria-hidden="true"
+                />
+                Asset Distribution
+              </h2>
+              <p className="text-[11px] text-[hsl(var(--text-muted))]">
+                Current status snapshot across all tracked assets
+              </p>
+            </div>
+          </div>
+
+          <div className="h-56" aria-label="Asset distribution chart">
+            {trendData.every((d) => d.value === 0) ? (
+              <div className="h-full flex items-center justify-center rounded-lg border border-dashed border-[hsl(var(--border))]">
+                <p className="text-xs text-[hsl(var(--text-muted))]">No data available yet</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(263 70% 50%)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(263 70% 50%)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(220 14% 18%)"
+                    vertical={false}
+                    opacity={0.5}
+                  />
+                  <XAxis
+                    dataKey="label"
+                    stroke="hsl(215 16% 38%)"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="hsl(215 16% 38%)"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="hsl(263 70% 60%)"
+                    strokeWidth={2}
+                    fill="url(#colorValue)"
+                    name="Count"
+                    activeDot={{ r: 5, strokeWidth: 0, fill: 'hsl(263 70% 60%)' }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
-        <div className="space-y-6">
+        {/* Right column */}
+        <div className="space-y-4">
+          {/* Quick Actions */}
           <QuickActions />
 
-          <div className="card-elevation flex flex-col justify-between space-y-4 border border-border/30 p-6">
-            <div className="space-y-4">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
-                <AlertTriangle size={16} className="text-rose-400" />
-                Overdue Returns
-              </h3>
-
-              {!isManager ? (
-                <div className="flex h-48 items-center justify-center rounded border border-border/50 bg-background/30 px-4 text-center text-xs text-text-muted">
-                  Any overdue items assigned to you will appear here automatically.
-                </div>
-              ) : overdueItems.length === 0 ? (
-                <div className="flex h-48 items-center justify-center rounded border border-border/50 bg-background/30 text-xs text-text-muted">
-                  No overdue items
-                </div>
-              ) : (
-                <div className="max-h-56 space-y-2.5 overflow-y-auto pr-1">
-                  {overdueItems.slice(0, 5).map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => navigate('/allocations')}
-                      className="flex cursor-pointer items-center justify-between rounded-xl border border-border/50 bg-surface/50 p-3 transition-all hover:border-rose-500/20 hover:bg-rose-500/5"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-semibold text-text-primary">
-                          {item.asset?.name}
-                        </p>
-                        <p className="mt-0.5 truncate text-[10px] text-text-secondary">
-                          {item.employee ? `Holder: ${item.employee.name}` : 'Assigned item'}
-                        </p>
-                      </div>
-                      <div className="ml-2 shrink-0 text-right">
-                        <span className="rounded border border-rose-500/20 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-300">
-                          Due {formatDate(item.expectedReturnAt)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* Overdue Returns */}
+          <div className="card p-5 space-y-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-[hsl(var(--text-primary))]">
+              <AlertTriangle className="w-4 h-4 text-[hsl(var(--danger))]" aria-hidden="true" />
+              Overdue Returns
+              {overdueItems.length > 0 && (
+                <span className="ml-auto text-[11px] font-semibold text-[hsl(var(--danger))] bg-[hsl(var(--danger)/0.10)] border border-[hsl(var(--danger)/0.20)] rounded px-1.5 py-0.5">
+                  {overdueItems.length}
+                </span>
               )}
-            </div>
+            </h3>
 
-            {isManager && overdueItems.length > 5 && (
+            {!isManager ? (
+              <div className="flex items-center justify-center h-36 rounded-lg border border-dashed border-[hsl(var(--border))]">
+                <p className="text-xs text-[hsl(var(--text-muted))] text-center px-4">
+                  Items assigned to you that are overdue will appear here.
+                </p>
+              </div>
+            ) : overdueItems.length === 0 ? (
+              <div className="flex items-center justify-center h-36 rounded-lg border border-dashed border-[hsl(var(--border))]">
+                <p className="text-xs text-[hsl(var(--success))] font-medium">
+                  ✓ All clear — no overdue returns
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {overdueItems.slice(0, 6).map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => navigate('/allocations')}
+                    className="
+                      w-full text-left flex items-center justify-between gap-2
+                      rounded-lg border border-[hsl(var(--border))]
+                      bg-[hsl(var(--surface-subtle))] p-3
+                      hover:border-[hsl(var(--danger)/0.30)] hover:bg-[hsl(var(--danger)/0.04)]
+                      transition-all duration-150 cursor-pointer
+                      group
+                    "
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-[hsl(var(--text-primary))] truncate">
+                        {item.asset?.name || '—'}
+                      </p>
+                      <p className="text-[10px] text-[hsl(var(--text-muted))] truncate mt-0.5">
+                        {item.employee ? item.employee.name : 'Unknown holder'}
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0 flex items-center gap-1.5">
+                      <span className="text-[10px] font-semibold text-[hsl(var(--danger))] bg-[hsl(var(--danger)/0.08)] border border-[hsl(var(--danger)/0.20)] rounded px-1.5 py-0.5 whitespace-nowrap">
+                        Due {formatDate(item.expectedReturnAt)}
+                      </span>
+                      <ArrowRight
+                        className="w-3.5 h-3.5 text-[hsl(var(--text-muted))] opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-hidden="true"
+                      />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {isManager && overdueItems.length > 6 && (
               <button
                 onClick={() => navigate('/allocations')}
-                className="flex cursor-pointer items-center justify-end gap-1 pt-2 text-xs font-medium text-primary hover:underline"
+                className="flex items-center justify-end gap-1 w-full text-xs font-medium text-[hsl(var(--primary))] hover:underline cursor-pointer pt-1"
               >
-                View all allocations <ArrowRight size={12} />
+                View all {overdueItems.length} overdue
+                <ArrowRight className="w-3 h-3" aria-hidden="true" />
               </button>
             )}
           </div>

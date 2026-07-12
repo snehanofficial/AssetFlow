@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar, Wrench } from 'lucide-react';
+import { Plus, Calendar, Wrench, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext.jsx';
 
 export const QuickActions = () => {
@@ -17,7 +17,8 @@ export const QuickActions = () => {
             title: 'Register Asset',
             description: 'Add a new asset to the registry',
             icon: Plus,
-            color: 'border-primary/30 hover:border-primary text-primary bg-primary/5',
+            className:
+              'border-[hsl(var(--primary)/0.25)] hover:border-[hsl(var(--primary)/0.60)] text-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.05)] hover:bg-[hsl(var(--primary)/0.08)]',
             onClick: () => navigate('/assets?action=new'),
           },
         ]
@@ -26,37 +27,53 @@ export const QuickActions = () => {
       title: 'Book Resource',
       description: 'Reserve a bookable shared asset',
       icon: Calendar,
-      color: 'border-success/30 hover:border-success text-success bg-success/5',
+      className:
+        'border-[hsl(var(--success)/0.25)] hover:border-[hsl(var(--success)/0.60)] text-[hsl(var(--success))] bg-[hsl(var(--success)/0.05)] hover:bg-[hsl(var(--success)/0.08)]',
       onClick: () => navigate('/bookings'),
     },
     {
-      title: 'Raise Repair',
-      description: 'Report a defect or raise maintenance',
+      title: 'Report Repair',
+      description: 'Report a defect or raise a ticket',
       icon: Wrench,
-      color: 'border-warning/30 hover:border-warning text-warning bg-warning/5',
+      className:
+        'border-[hsl(var(--warning)/0.25)] hover:border-[hsl(var(--warning)/0.60)] text-[hsl(var(--warning))] bg-[hsl(var(--warning)/0.05)] hover:bg-[hsl(var(--warning)/0.08)]',
       onClick: () => navigate('/maintenance?action=new'),
     },
   ];
 
   return (
-    <div className="card-elevation p-6 space-y-4">
-      <h3 className="font-display font-bold text-sm text-text-primary">Quick Actions</h3>
-      <div className="grid grid-cols-1 gap-3">
-        {actions.map((action, idx) => {
+    <div className="card p-5 space-y-3">
+      <h3 className="text-sm font-semibold text-[hsl(var(--text-primary))]">Quick Actions</h3>
+      <div className="space-y-2">
+        {actions.map((action) => {
           const Icon = action.icon;
           return (
             <button
-              key={idx}
+              key={action.title}
               onClick={action.onClick}
-              className={`w-full text-left border rounded-lg p-3 flex items-start gap-3 transition-all duration-200 cursor-pointer hover:translate-x-1 ${action.color}`}
+              className={`
+                w-full text-left border rounded-lg p-3
+                flex items-center gap-3
+                transition-all duration-150 cursor-pointer
+                group
+                ${action.className}
+              `}
             >
-              <div className="p-2 rounded bg-background/50">
-                <Icon className="w-5 h-5" />
+              <div className="p-1.5 rounded-md bg-current/10 flex-shrink-0" aria-hidden="true">
+                <Icon className="w-4 h-4" />
               </div>
-              <div>
-                <h4 className="font-semibold text-xs text-text-primary">{action.title}</h4>
-                <p className="text-text-muted text-xxs mt-0.5">{action.description}</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-xs text-[hsl(var(--text-primary))]">
+                  {action.title}
+                </p>
+                <p className="text-[11px] text-[hsl(var(--text-muted))] mt-0.5">
+                  {action.description}
+                </p>
               </div>
+              <ArrowRight
+                className="w-3.5 h-3.5 text-[hsl(var(--text-muted))] flex-shrink-0 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-150"
+                aria-hidden="true"
+              />
             </button>
           );
         })}
