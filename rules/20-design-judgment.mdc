@@ -1,0 +1,521 @@
+---
+alwaysApply: true
+tier: 2
+description: "Design anti-patterns, dark patterns, common mistakes. Use when reviewing designs for pitfalls or evaluating ethical design decisions."
+---
+
+# Anti-Patterns — What to NEVER Do
+
+> This is the most important document for avoiding recurring mistakes.
+> Every anti-pattern listed here is a REAL error that has actually been made.
+> If you violate any rule in this document, STOP and fix it before continuing.
+
+## TL;DR
+- Circular buttons MUST be FIXED width = FIXED height with cornerRadius = size/2 — never HUG (AP-01, catastrophic)
+- Only 1 primary CTA (filled) per screen; secondary actions use outlined or ghost style (AP-06)
+- Use exactly 1 accent color for all primary actions; vary hierarchy by style (filled/outlined/ghost), not color (AP-02)
+- Primary CTA always in the bottom half of the screen on mobile (thumb zone) (AP-07)
+- Button labels must be verb + noun describing the action ("Send $150" not "OK" or "Submit") (AP-08)
+- Show loading feedback within 100ms; display loading state if action takes > 400ms (AP-09)
+- Consistent padding on all cards of the same type; follow the 8px grid (AP-03)
+- Maximum 2 border-radius values + pill across the entire design (AP-04)
+- Body text minimum 16px; font-weight 400+ for anything below 18px; maintain 4.5:1+ contrast ratio (AP-05)
+- Modals must have at least 2 ways to close (X button + overlay tap or swipe) (AP-10)
+- FILL sizing only works inside an auto-layout parent — set layoutMode FIRST (AP-12)
+- Maximum 3-4 options for primary decisions (pricing, plans); provide a recommendation for larger sets (AP-26)
+- Dark patterns are forbidden: no confirm-shaming, no hidden costs, no roach motels, no trick questions (AP-18 to AP-22)
+
+---
+
+## VISUAL ANTI-PATTERNS (UI)
+
+### AP-01: "Cylindrical" Button (The most severe error)
+```
+❌ WRONG:
+┌────────────────────────┐
+│         Icon            │  ← Auto-layout HUG with uneven padding
+└────────────────────────┘    = Oval/cylindrical shape
+
+✅ CORRECT:
+    ┌───┐
+    │ + │                     ← FIXED 56×56, cornerRadius 28
+    └───┘
+```
+**Cause**: `primaryAxisSizingMode = 'AUTO'` or `layoutSizingHorizontal = 'HUG'` on a circular button.
+**Fix**: FIXED width = FIXED height = desired size. cornerRadius = size/2.
+
+---
+
+### AP-02: Color Soup
+```
+❌ WRONG:
+Button 1: Blue #276EF1
+Button 2: Green #0E8345
+Button 3: Purple #7B2FFF
+Button 4: Orange #FF6B00
+→ Screen looks like a meaningless rainbow
+
+✅ CORRECT:
+Primary CTA: Blue #276EF1 (ONLY element with this color)
+Secondary CTA: Outlined (blue border, transparent background)
+Tertiary CTA: Ghost (no border, blue text)
+→ Clear hierarchy with one accent color
+```
+**Cause**: Using different colors for each button without hierarchy.
+**Fix**: 1 accent color for ALL primary actions. Variations only by style (filled/outlined/ghost).
+
+---
+
+### AP-03: Inconsistent Padding
+```
+❌ WRONG:
+Card 1: padding 24px
+Card 2: padding 16px
+Card 3: padding 12px top, 20px bottom
+→ Looks misaligned and amateurish
+
+✅ CORRECT:
+All cards: padding 16px (uniform)
+Or all: padding 24px (uniform)
+→ Consistency = professionalism
+```
+**Cause**: Arbitrary values without following the 8px grid.
+**Fix**: Choose 1 padding value and use it on ALL cards of the same type.
+
+---
+
+### AP-04: Mixed Border-Radius
+```
+❌ WRONG:
+Card: cornerRadius 16px
+Button: cornerRadius 8px
+Input: cornerRadius 4px
+Badge: cornerRadius 12px
+→ 4 different values, inconsistent visual
+
+✅ CORRECT:
+Card: cornerRadius 12px
+Button: cornerRadius 12px (or 8px if smaller)
+Input: cornerRadius 8px
+Badge: cornerRadius full (height/2)
+→ Maximum 2 values + pill
+```
+
+---
+
+### AP-05: Illegible Text
+```
+❌ WRONG:
+- Gray text #CCCCCC on white background #FFFFFF (ratio 1.6:1)
+- 10px text for body text
+- Font-weight 300 (Light) at 14px
+- Pure white text on pure black
+
+✅ CORRECT:
+- Text #333333 on #FFFFFF (ratio 12.63:1)
+- Body text minimum 16px
+- Font-weight 400+ for everything below 18px
+- Text #E0E0E0 on #121212 (comfortable)
+```
+
+---
+
+## UX ANTI-PATTERNS
+
+### AP-06: Two Primary CTAs
+```
+❌ WRONG:
+[ Send PIX ]    [ Cancel ]
+  (blue filled)   (red filled)
+→ User doesn't know which is the main action
+
+✅ CORRECT:
+   Cancel         [ Send PIX ]
+  (ghost/text)     (blue filled)
+→ 1 primary (filled), 1 secondary (ghost)
+```
+**Cause**: Giving the same visual weight to actions at different levels.
+**Fix**: Only 1 filled button per screen. Others are outlined or ghost.
+
+---
+
+### AP-07: CTA at the Top (Mobile)
+```
+❌ WRONG:
+┌──────────────────────────┐
+│  [ Confirm Payment ]     │  ← CTA at top = hard to reach
+│                          │
+│  ... content ...         │
+│                          │
+│                          │
+└──────────────────────────┘
+
+✅ CORRECT:
+┌──────────────────────────┐
+│                          │
+│  ... content ...         │
+│                          │
+│                          │
+│  [ Confirm Payment ]     │  ← CTA at bottom = thumb zone
+└──────────────────────────┘
+```
+**Cause**: Not considering the thumb zone on mobile.
+**Fix**: Primary CTA always in the bottom half of the screen.
+
+---
+
+### AP-08: Generic Label
+```
+❌ WRONG:
+[ OK ]
+[ Yes ]
+[ Confirm ]
+[ Submit ]
+[ Continue ]
+
+✅ CORRECT:
+[ Send PIX of $150.00 ]
+[ Delete my account ]
+[ Go to review ]
+[ Save draft ]
+[ Create new account ]
+```
+**Cause**: Laziness in writing descriptive labels.
+**Fix**: Verb + noun. The label describes WHAT will happen.
+
+---
+
+### AP-09: No Loading Feedback
+```
+❌ WRONG:
+User clicks "Send" → screen freezes for 3 seconds → result appears
+→ User thinks it's bugged and clicks again
+
+✅ CORRECT:
+User clicks "Send" → button shows spinner → loading skeleton → result appears
+→ User knows the system is processing
+```
+**Cause**: Not implementing loading states.
+**Fix**: Visual feedback in < 100ms. Loading state if > 400ms.
+
+---
+
+### AP-10: Modal Without Exit
+```
+❌ WRONG:
+┌──────────────────────────┐
+│                          │
+│  Modal content           │
+│                          │
+│  [ Confirm ]             │  ← No X, no overlay tap, no gesture
+│                          │
+└──────────────────────────┘
+
+✅ CORRECT:
+┌──────────────────────────┐
+│  ×                       │  ← X to close
+│                          │
+│  Modal content           │
+│                          │
+│ [ Cancel ] [ Confirm ]   │  ← Two clear options
+└──────────────────────────┘
++ Tap on overlay closes
++ Swipe down closes (bottom sheet)
+```
+
+---
+
+### AP-11: Elements Floating on Canvas
+```
+❌ WRONG:
+Creating loose components on the Figma canvas, without a parent
+
+✅ CORRECT:
+Create Section → Frame → Components inside
+Everything organized and hierarchical
+```
+
+---
+
+### AP-12: FILL on Element Outside Auto-Layout
+```
+❌ WRONG:
+const child = figma.createFrame();
+child.layoutSizingHorizontal = 'FILL';  // ERROR: parent has no auto-layout
+parent.appendChild(child);
+
+✅ CORRECT:
+parent.layoutMode = 'VERTICAL';          // 1. Parent with auto-layout
+parent.appendChild(child);               // 2. Add to parent
+child.layoutSizingHorizontal = 'FILL';   // 3. THEN set FILL
+```
+
+---
+
+### AP-13: Same Color for Everything
+```
+❌ WRONG:
+Background: #1A1A1A
+Card: #1A1A1A
+Button: #1A1A1A
+→ Everything blends together, no hierarchy
+
+✅ CORRECT (Dark Mode):
+Background: #121212
+Card: #1E1E1E (lighter than background)
+Button: #276EF1 (accent)
+→ Clear elevation layers
+```
+
+---
+
+### AP-14: Icon Without Label
+```
+❌ WRONG:
+Bottom nav with 5 icons without text
+→ New user doesn't know what each one does
+
+✅ CORRECT:
+Bottom nav with 5 icons + labels
+🏠 Home   🔍 Search   ➕ Create   🔔 Alerts   👤 Profile
+```
+
+---
+
+### AP-15: Excessive Animation
+```
+❌ WRONG:
+Everything bounces, everything shakes, everything pulses
+Each element enters with 100ms stagger
+800ms transitions for each screen
+→ App feels slow and annoying
+
+✅ CORRECT:
+300ms transitions, gentle
+Micro-interactions only where needed
+No bounce in financial/professional apps
+→ Elegant and functional
+```
+
+---
+
+### AP-16: Ignoring Information Hierarchy
+```
+❌ WRONG:
+Title: 16px Regular
+Subtitle: 16px Regular
+Body: 16px Regular
+Caption: 16px Regular
+→ Everything looks the same, no hierarchy
+
+✅ CORRECT:
+Title: 24px SemiBold
+Subtitle: 18px SemiBold
+Body: 16px Regular
+Caption: 12px Regular, neutral-600
+→ Clear hierarchy at a glance
+```
+
+---
+
+### AP-17: Card with Too Much Information
+```
+❌ WRONG:
+┌────────────────────────────────┐
+│ Avatar │ User Full Name        │
+│ User email                     │
+│ User phone                     │
+│ User full address              │
+│ User ID number                 │
+│ Date of birth                  │
+│ Account status                 │
+│ Last login: 02/14/2026         │
+│ [ Edit ] [ Delete ] [ View ]   │
+└────────────────────────────────┘
+
+✅ CORRECT:
+┌────────────────────────────────┐
+│ Avatar │ John Smith            │
+│        │ john@email.com        │
+│                    [ View → ]  │
+└────────────────────────────────┘
+```
+
+---
+
+## SUMMARY — TOP 5 MOST COMMON ERRORS
+
+| # | Error | Frequency | Severity |
+|---|---|---|---|
+| 1 | Circular button = oval (AP-01) | High | Catastrophic |
+| 2 | Multiple primary CTAs (AP-06) | High | Major |
+| 3 | Inconsistent colors (AP-02) | High | Major |
+| 4 | CTA at top on mobile (AP-07) | Medium | Major |
+| 5 | No loading feedback (AP-09) | Medium | Major |
+
+---
+
+## SELF-REVIEW CHECKLIST
+
+Before declaring any screen as "done":
+
+### Visual:
+- [ ] Only 1 primary CTA (filled)?
+- [ ] Are circular buttons ACTUALLY circular?
+- [ ] Only 1 accent color on the screen?
+- [ ] Consistent border-radius on all elements of the same type?
+- [ ] Uniform padding on cards/containers?
+- [ ] Clear typographic hierarchy (≥ 3 different sizes)?
+
+### Functional:
+- [ ] CTA in the thumb zone (bottom half)?
+- [ ] Button labels are descriptive (verb + noun)?
+- [ ] All components have press feedback?
+- [ ] Loading states defined for actions > 400ms?
+- [ ] Modals have at least 2 ways to close?
+- [ ] Back button on all sub-screens?
+
+### Technical (Figma):
+- [ ] Everything in auto-layout?
+- [ ] No elements floating on canvas?
+- [ ] FILL applied AFTER appendChild?
+- [ ] Fonts loaded before use?
+- [ ] Layers named with convention?
+
+---
+
+## ADDITIONS — Design Bible Architect Review
+
+### DARK PATTERN ANTI-PATTERNS (Ethical Violations)
+
+These are not just bad UX — they are ethically unacceptable. Never implement these:
+
+#### AP-18: Confirm-Shaming
+```
+❌ WRONG:
+"No thanks, I don't like saving money"  ← Manipulative dismiss text
+"Yes, sign me up!"                      ← Positive option
+
+✅ CORRECT:
+"Subscribe to newsletter"               ← Clear action
+"No thanks"                             ← Neutral, non-judgmental dismiss
+```
+
+#### AP-19: Roach Motel (Easy to Enter, Hard to Leave)
+```
+❌ WRONG:
+Sign up: 1 click
+Delete account: Settings > Account > Security > Advanced > Delete (5 levels deep)
+
+✅ CORRECT:
+Sign up: Simple flow
+Delete account: Settings > Account > Delete Account (2 levels, clear path)
+```
+
+#### AP-20: Hidden Costs
+```
+❌ WRONG:
+Product page shows "$29.99"
+Checkout reveals "$29.99 + $8.99 shipping + $3.50 service fee + $2.00 tax"
+
+✅ CORRECT:
+Product page shows "$29.99 + shipping" with estimated total
+Checkout shows itemized breakdown from the start
+```
+
+#### AP-21: Forced Continuity
+```
+❌ WRONG:
+Free trial ends → Auto-charges with no warning
+
+✅ CORRECT:
+Free trial → Email 3 days before end → Clear cancellation option → Then charge
+```
+
+#### AP-22: Trick Questions
+```
+❌ WRONG:
+□ Uncheck this box if you prefer not to not receive emails
+  (Double negative, confusing)
+
+✅ CORRECT:
+□ Send me product updates via email
+  (Clear, opt-in, honest)
+```
+
+### B2B/SAAS SPECIFIC ANTI-PATTERNS
+
+#### AP-23: Feature Overload on First Use
+```
+❌ WRONG:
+New user sees: Dashboard with 15 widgets, 12 sidebar items, 4 notifications,
+tutorial overlay, upgrade banner, AND a survey popup
+
+✅ CORRECT:
+New user sees: Simplified dashboard with 3 key actions,
+guided onboarding that reveals features progressively
+```
+
+#### AP-24: Settings Graveyard
+```
+❌ WRONG:
+One massive settings page with 60+ options in no particular order
+
+✅ CORRECT:
+Settings organized by category (Account, Notifications, Integrations, Security)
+Search within settings
+Most common settings surfaced first
+```
+
+---
+
+### ADDITIONS — Weinschenk Psychology Principles
+
+### AP-26: Choice Overload (Weinschenk #92, #93)
+
+The "jam study" (Iyengar & Lepper): 24 jam options led to 3% purchase rate; 6 options led to 30%. More choices feel empowering but actually paralyze decision-making.
+
+```
+BAD:
+Plan selection page with 8 pricing tiers, each with 20 feature comparisons
+Result: Users study the page for 10 minutes and leave without choosing
+
+GOOD:
+3 pricing tiers (Basic / Pro / Enterprise) with 5 key differentiators
+A "Help me choose" quiz that recommends one plan
+Result: Quick decision, higher conversion
+```
+
+**Rules**:
+- **Maximum 3-4 options for primary decisions** (pricing, plans, templates)
+- **If more options are necessary, provide a recommendation**: "Most popular" or "Recommended for you"
+- **Progressive filtering**: Start with 3 options, offer "Show more" for advanced users
+- **Paradox of autonomy**: Users WANT many choices but perform better with fewer. Give the feeling of choice while constraining the actual set.
+
+### AP-27: Unconscious Decision Hijacking (Weinschenk #90, #91)
+
+Most decisions are unconscious, driven by social proof, commitment consistency, and loss aversion. Gut feelings often detect patterns before conscious reasoning.
+
+```
+BAD:
+Manipulating unconscious decisions through dark patterns
+(pre-checked upsells, misleading defaults, fear-of-missing-out timers)
+
+GOOD:
+Using unconscious decision principles transparently
+(clear defaults that serve the user, honest social proof, genuine scarcity)
+```
+
+**The ethical line**: It is acceptable to use smart defaults, clear social proof, and honest urgency signals. It is NOT acceptable to exploit loss aversion with fake scarcity, pre-check options the user did not request, or use commitment escalation to trap users in unwanted subscriptions.
+
+#### AP-25: Notification Spam
+```
+❌ WRONG:
+Every system event generates a notification badge, email, AND in-app toast
+
+✅ CORRECT:
+Notification categories with user-controlled preferences
+Critical: In-app + email
+Important: In-app only
+Low priority: Badge count only
+```

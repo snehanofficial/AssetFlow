@@ -1,0 +1,206 @@
+---
+alwaysApply: true
+tier: 0
+description: "Foundational design principles: visual hierarchy, 7 pillars, trade-off chain, pre-creation checklist. Always active."
+---
+
+# RULE ZERO — Fundamental Design Principles
+
+> This document is the foundation of EVERYTHING. Before creating any visual element, these rules are inviolable.
+
+## BEFORE CREATING ANY SCREEN
+
+1. **Define the visual hierarchy** — What should the user see FIRST? SECOND? THIRD?
+2. **One primary action per screen** — Never compete with 2 CTAs of equal visual weight
+3. **Breathe** — White space is not waste, it's clarity
+4. **Consistency over creativity** — If the design system defines a pattern, follow it. Always.
+5. **Mobile-first** — Start from the smallest viewport and expand
+
+---
+
+## THE 4 PILLARS OF VISUAL DESIGN
+
+### 1. Hierarchy
+- **Size** — The most important element is the largest
+- **Weight** — Bold for headings, regular for body
+- **Color** — Vibrant colors for actions, neutrals for support
+- **Position** — The eye reads in an F-pattern (web) or centered (mobile)
+- **Spacing** — More space around = more importance
+
+### 2. Contrast
+- Don't use similar colors side by side
+- Text over background needs a minimum ratio of 4.5:1 (WCAG AA)
+- Large text (>18px bold or >24px regular): minimum ratio 3:1
+- NEVER light gray on white — it's invisible
+- Dark mode: Don't use pure white (#FFFFFF) on pure black (#000000) — causes visual vibration. Use #E0E0E0 on #121212
+
+### 3. Alignment
+- **Everything aligns to something** — If an element isn't aligned to any other, it's wrong
+- Use an 8px grid for EVERYTHING (spacing, padding, margin, sizes)
+- Left-align by default (LTR languages)
+- Center only for screen titles, modals, and empty states
+- NEVER mix different alignments in the same section
+
+### 4. Proximity
+- Related elements stay TOGETHER (8-12px)
+- Unrelated elements stay APART (24-32px+)
+- Space between groups must be AT LEAST 2x the space between items within the same group
+- Label + Input = 4-8px gap
+- Different sections = 32-48px gap
+
+---
+
+### 5. Repetition (Consistency)
+- **Same pattern = same meaning** — If a blue pill-shaped element means "clickable tag" in one place, it means that everywhere
+- **Component reuse over reinvention** — Before creating a new pattern, check if an existing one can be adapted
+- **Consistency builds trust** — Users learn your interface once, then rely on those patterns. Breaking consistency breaks trust.
+- **Practical rule**: Before adding any new visual treatment, search the existing design for a precedent. If one exists, use it.
+
+#### 6. Whitespace (Active Design Element)
+- Whitespace is not "empty space" — it is an active compositional tool that creates grouping, hierarchy, and perceived value
+- **More whitespace = higher perceived quality** (compare Cash App vs a cluttered fintech)
+- **Content-to-background ratio**: Aim for 60-70% content, 30-40% visible background on any screen
+- **Micro whitespace** (4-8px): Creates relationships within groups
+- **Macro whitespace** (32-64px): Creates separation between sections
+- **Rule**: If removing whitespace doesn't break the layout, you probably need MORE whitespace, not less
+
+#### 7. Unity
+- All elements on a screen should feel like they belong to the same visual language
+- **Unity checklist**: Same border-radius system, same shadow system, same color palette, same type scale, same spacing scale
+- **Disunity signals**: Mixed border-radius values, inconsistent shadows, competing accent colors, type sizes not from the scale
+- **The squint test**: Squint at the screen. If some elements "pop" in a way that feels disconnected, unity is broken.
+
+---
+
+## GOLDEN RULES FOR MOBILE
+
+### Touch Targets
+- **Absolute minimum**: 44×44px (Apple HIG) / 48×48dp (Material Design)
+- **Recommended**: 48×48px
+- **Spacing between targets**: minimum 8px
+- **Circular button MUST be circular**: width === height, cornerRadius = width/2
+- NEVER create an oval button when the intent is circular
+
+### Safe Areas
+- **Top**: Respect the status bar (44px iOS, 24dp Android)
+- **Bottom**: Respect the home indicator (34px iOS) and navigation bar
+- **Thumb zone**: Primary actions in the bottom half of the screen (thumb reach)
+- **Danger zone**: Top-left corner = hardest to reach
+
+### Minimum Text Sizes
+- **Body**: 16px minimum (NEVER smaller)
+- **Caption/Helper**: 12px minimum (NEVER smaller)
+- **Input label**: 14-16px
+- **Screen title**: 20-28px
+- **Display/Hero**: 32-48px
+
+---
+
+## TRADE-OFF PRIORITY CHAIN
+
+When design goals conflict, resolve along this priority chain (highest to lowest):
+
+```
+Accessibility > Safety (irreversible actions) > Readability > Consistency > Contextualization > Information Density > Aesthetic Exceptions > Feature Richness
+```
+
+**Example applications**:
+- Contrast ratio (Accessibility) wins over brand color guidelines (Aesthetic)
+- Confirmation dialog (Safety) wins over flow speed (Feature Richness)
+- Legible font size (Readability) wins over fitting more content (Information Density)
+- Following existing patterns (Consistency) wins over a "better" one-off solution (Contextualization)
+
+If you deviate from this chain, document the reason explicitly.
+
+---
+
+## ERRORS AS SYSTEM FAILURE (Don Norman)
+
+A core principle: **Errors are NEVER the user's fault.**
+
+- **Slips** (user knows the right action but executes incorrectly): Prevent with constraints, confirmation, and undo
+- **Mistakes** (user forms the wrong intention): Prevent with clear labeling, obvious affordances, and good conceptual models
+- **Design response**: When an error occurs, the interface should explain what happened, why, and what to do next — without blame language
+- **NEVER**: "You entered an invalid email" — **ALWAYS**: "This email format doesn't look right. Try name@example.com"
+
+---
+
+## PREDICTABILITY PRINCIPLE
+
+The user must ALWAYS know:
+1. **Where they are** — Screen title, breadcrumbs, active tab
+2. **What they can do** — Visible buttons, clear affordances
+3. **What will happen** — Descriptive labels ("Send Payment" not "Confirm")
+4. **How to go back** — Back button, gesture, X to close
+
+---
+
+## PRE-CREATION CHECKLIST
+
+Before creating any screen in Figma, answer:
+
+- [ ] What is the SINGLE primary action of this screen?
+- [ ] What is the visual hierarchy? (1st, 2nd, 3rd element)
+- [ ] Does the spacing follow the 8px grid?
+- [ ] Do touch targets have at least 44×44px?
+- [ ] Is text contrast sufficient (4.5:1)?
+- [ ] Does the user know how to go back?
+- [ ] Is there enough breathing room between sections?
+- [ ] Are all circular buttons ACTUALLY circular (width = height)?
+
+---
+
+### DESIGN SYSTEM THINKING
+
+Before creating any screen, also answer:
+- [ ] Does this screen use ONLY components/patterns already in the design system?
+- [ ] If a new pattern is needed, is it general enough to be added to the system?
+- [ ] Are design tokens (colors, spacing, type) used instead of hard-coded values?
+- [ ] Has the screen been reviewed against the 7 pillars (Hierarchy, Contrast, Alignment, Proximity, Repetition, Whitespace, Unity)?
+
+---
+
+---
+
+### TRUST THROUGH VISUAL DESIGN (Weinschenk #79)
+
+Research shows that 83% of users judge a product's trustworthiness based on visual design BEFORE evaluating content or functionality. Look-and-feel is the **first trust gate**.
+
+**Practical rules**:
+- **First impression budget**: Invest disproportionate design effort in the first screen a user sees — landing page, login, or dashboard. If this screen looks amateur, users will not trust the product regardless of features.
+- **Professional signals**: Consistent spacing, refined typography, restrained color, and high-quality imagery signal competence. These are not aesthetic preferences — they are trust indicators.
+- **Trust hierarchy**: Visual polish > testimonials > feature descriptions. Users decide to stay or leave in 50ms based on visual quality.
+- **The implication for MVP/early products**: Even a minimal product needs visual coherence. A polished 3-screen flow beats a rough 20-screen flow for trust-building.
+
+---
+
+### CANONICAL PERSPECTIVE AND OBJECT RECOGNITION (Weinschenk #3, #5)
+
+The brain identifies objects through pattern recognition (geons — simple 3D shapes) and expects objects shown from a slightly-above, slightly-tilted angle (canonical perspective).
+
+**Practical rules for product/illustration design**:
+- **Product images**: Show objects at a 3/4 angle, slightly above — this is the angle users expect and process fastest
+- **Icons**: Use the most recognizable angle of an object — a house from the front, a phone tilted slightly, a document face-on
+- **3D illustrations**: Prefer canonical angles over dramatic perspectives — faster recognition, less cognitive effort
+
+---
+
+### PERIPHERAL VISION AND SCREEN SCANNING (Weinschenk #2, #6)
+
+Users rely on peripheral vision to grasp overall page structure BEFORE reading details. Scanning follows learned patterns (F-pattern on web, center-weighted on mobile).
+
+**Practical rules**:
+- **Page edges matter less**: Users rarely fixate on the extreme edges of a screen. Do not place critical actions at the far periphery.
+- **Structural landmarks**: Headers, section dividers, and whitespace create the peripheral "map" users scan. Without these, the page feels like a wall of undifferentiated content.
+- **Change blindness** (#8): Users often miss changes in areas they are not actively looking at. When content updates dynamically (notifications, status changes), use motion or color flash to draw attention — a silent update may go unnoticed entirely.
+
+---
+
+## REFERENCE SOURCES
+
+- "Don't Make Me Think" — Steve Krug
+- "The Design of Everyday Things" — Don Norman
+- "Refactoring UI" — Adam Wathan & Steve Schoger
+- Apple Human Interface Guidelines (developer.apple.com/design)
+- Material Design 3 (m3.material.io)
+- Laws of UX (lawsofux.com)

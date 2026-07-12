@@ -38,23 +38,25 @@ export const Signup = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-display font-bold text-white">Create Account</h2>
-        <p className="text-slate-400 text-xs">Request access to the organization ERP platform.</p>
+        <h2 className="text-2xl font-display font-bold text-text-primary">Create Account</h2>
+        <p className="text-text-secondary text-xs">
+          Request access to the organization ERP platform.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Full Name */}
         <div className="space-y-1">
-          <label className="text-slate-300 text-xs font-medium" htmlFor="name-input">
+          <label className="text-text-secondary text-xs font-medium" htmlFor="name-input">
             Full Name
           </label>
           <input
             id="name-input"
             type="text"
-            className={`w-full bg-slate-950 border rounded-md px-3 py-2 text-sm text-slate-300 focus:outline ${
+            className={`w-full bg-background border rounded-md px-3 py-2 text-sm text-text-primary focus:outline ${
               errors.name
-                ? 'border-rose-500 focus:border-rose-500'
-                : 'border-slate-800 focus:border-indigo-500'
+                ? 'border-destructive focus:border-destructive'
+                : 'border-border focus:border-primary'
             }`}
             placeholder="John Doe"
             disabled={submitting}
@@ -67,22 +69,22 @@ export const Signup = () => {
             })}
           />
           {errors.name && (
-            <p className="text-rose-500 text-xxs font-medium mt-1">{errors.name.message}</p>
+            <p className="text-destructive text-xxs font-medium mt-1">{errors.name.message}</p>
           )}
         </div>
 
         {/* Email Address */}
         <div className="space-y-1">
-          <label className="text-slate-300 text-xs font-medium" htmlFor="email-input">
+          <label className="text-text-secondary text-xs font-medium" htmlFor="email-input">
             Email Address
           </label>
           <input
             id="email-input"
             type="email"
-            className={`w-full bg-slate-950 border rounded-md px-3 py-2 text-sm text-slate-300 focus:outline ${
+            className={`w-full bg-background border rounded-md px-3 py-2 text-sm text-text-primary focus:outline ${
               errors.email
-                ? 'border-rose-500 focus:border-rose-500'
-                : 'border-slate-800 focus:border-indigo-500'
+                ? 'border-destructive focus:border-destructive'
+                : 'border-border focus:border-primary'
             }`}
             placeholder="name@organization.com"
             disabled={submitting}
@@ -95,22 +97,22 @@ export const Signup = () => {
             })}
           />
           {errors.email && (
-            <p className="text-rose-500 text-xxs font-medium mt-1">{errors.email.message}</p>
+            <p className="text-destructive text-xxs font-medium mt-1">{errors.email.message}</p>
           )}
         </div>
 
         {/* Password */}
         <div className="space-y-1">
-          <label className="text-slate-300 text-xs font-medium" htmlFor="password-input">
+          <label className="text-text-secondary text-xs font-medium" htmlFor="password-input">
             Password
           </label>
           <input
             id="password-input"
             type="password"
-            className={`w-full bg-slate-950 border rounded-md px-3 py-2 text-sm text-slate-300 focus:outline ${
+            className={`w-full bg-background border rounded-md px-3 py-2 text-sm text-text-primary focus:outline ${
               errors.password
-                ? 'border-rose-500 focus:border-rose-500'
-                : 'border-slate-800 focus:border-indigo-500'
+                ? 'border-destructive focus:border-destructive'
+                : 'border-border focus:border-primary'
             }`}
             placeholder="••••••••"
             disabled={submitting}
@@ -130,7 +132,7 @@ export const Signup = () => {
             })}
           />
           {errors.password && (
-            <p className="text-rose-500 text-xxs font-medium mt-1">{errors.password.message}</p>
+            <p className="text-destructive text-xxs font-medium mt-1">{errors.password.message}</p>
           )}
         </div>
 
@@ -138,11 +140,11 @@ export const Signup = () => {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:opacity-50 text-white font-medium text-sm py-2 rounded-md transition-all cursor-pointer flex items-center justify-center gap-2"
+          className="w-full bg-primary hover:bg-primary-hover disabled:bg-primary/55 disabled:opacity-50 text-primary-foreground font-medium text-sm py-2 rounded-md transition-all cursor-pointer flex items-center justify-center gap-2"
         >
           {submitting ? (
             <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
               <span>Registering...</span>
             </>
           ) : (
@@ -151,9 +153,9 @@ export const Signup = () => {
         </button>
       </form>
 
-      <div className="text-center text-xs text-slate-500">
+      <div className="text-center text-xs text-text-muted">
         Already have an account?{' '}
-        <Link to="/login" className="text-indigo-400 hover:underline">
+        <Link to="/login" className="text-primary hover:underline">
           Sign In
         </Link>
       </div>

@@ -24,18 +24,18 @@ export const OrganizationSetup = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-          <Shield className="w-6 h-6 text-indigo-500" />
+        <h1 className="font-display text-2xl font-bold tracking-tight text-text-primary flex items-center gap-2">
+          <Shield className="w-6 h-6 text-primary" />
           System Administration
         </h1>
-        <p className="text-slate-400 text-xs">
+        <p className="text-text-secondary text-xs">
           Manage corporate structure, category schemas, and employee privileges.
         </p>
       </div>
 
       <div className="card-elevation p-6 space-y-6">
         {/* Tab Headers */}
-        <div className="border-b border-slate-800 pb-4 flex gap-6">
+        <div className="border-b border-border pb-4 flex gap-6">
           {[
             { label: 'Employees Directory', icon: Users },
             { label: 'Department Hierarchies', icon: Network },
@@ -49,8 +49,8 @@ export const OrganizationSetup = () => {
                 onClick={() => setActiveTab(idx)}
                 className={`text-sm font-semibold pb-4 -mb-4 transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
                   isActive
-                    ? 'border-indigo-500 text-indigo-400 font-bold'
-                    : 'border-transparent text-slate-400 hover:text-white'
+                    ? 'border-primary text-primary font-bold'
+                    : 'border-transparent text-text-secondary hover:text-text-primary'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -182,24 +182,24 @@ const EmployeesTab = ({ showToast }) => {
             setSearch(e.target.value);
             setPage(1);
           }}
-          className="bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-xs text-slate-300 w-full sm:w-80 outline-none focus:border-indigo-500"
+          className="bg-background border border-border rounded-md px-3 py-2 text-xs text-text-primary w-full sm:w-80 outline-none focus:border-primary"
         />
       </div>
 
       {loadingEmployees ? (
         <div className="flex flex-col items-center justify-center p-12 h-64 space-y-2">
-          <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-slate-500 text-xs">Loading directory...</span>
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-text-muted text-xs">Loading directory...</span>
         </div>
       ) : employees.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 h-64 text-slate-500 text-xs italic">
+        <div className="flex flex-col items-center justify-center p-12 h-64 text-text-muted text-xs italic">
           No employees found in organization directory.
         </div>
       ) : (
-        <div className="overflow-x-auto border border-slate-800 rounded-lg">
+        <div className="overflow-x-auto border border-border rounded-lg">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase tracking-wider font-semibold">
+              <tr className="bg-background text-text-secondary border-b border-border uppercase tracking-wider font-semibold">
                 <th className="p-4">Name</th>
                 <th className="p-4">Email</th>
                 <th className="p-4">Department</th>
@@ -208,19 +208,19 @@ const EmployeesTab = ({ showToast }) => {
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-border">
               {employees.map((emp) => (
-                <tr key={emp.id} className="hover:bg-slate-900/30 text-slate-300">
-                  <td className="p-4 font-semibold text-white">{emp.name}</td>
+                <tr key={emp.id} className="hover:bg-surface-hover text-text-secondary">
+                  <td className="p-4 font-semibold text-text-primary">{emp.name}</td>
                   <td className="p-4">{emp.email}</td>
                   <td className="p-4">
-                    {emp.department?.name || <span className="text-slate-600">Unassigned</span>}
+                    {emp.department?.name || <span className="text-text-muted">Unassigned</span>}
                   </td>
                   <td className="p-4">
                     <select
                       value={emp.role}
                       onChange={(e) => setConfirmRole({ employee: emp, role: e.target.value })}
-                      className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-300 outline-none text-xxs font-semibold"
+                      className="bg-background border border-border rounded px-2 py-1 text-text-primary outline-none text-xxs font-semibold focus:border-primary"
                     >
                       <option value="ADMIN">Admin</option>
                       <option value="ASSET_MANAGER">Asset Manager</option>
@@ -233,8 +233,8 @@ const EmployeesTab = ({ showToast }) => {
                       onClick={() => handleToggleStatus(emp)}
                       className={`px-2 py-0.5 rounded text-xxs font-semibold border flex items-center gap-1 cursor-pointer transition-all ${
                         emp.status === 'ACTIVE'
-                          ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/50 hover:bg-emerald-950/80'
-                          : 'bg-rose-950/40 text-rose-400 border-rose-800/50 hover:bg-rose-950/80'
+                          ? 'bg-success/10 text-success border-success/20 hover:bg-success/20'
+                          : 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20'
                       }`}
                     >
                       {emp.status === 'ACTIVE' ? (
@@ -248,14 +248,14 @@ const EmployeesTab = ({ showToast }) => {
                   <td className="p-4 text-right flex justify-end gap-2">
                     <button
                       onClick={() => setEditEmployee(emp)}
-                      className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white cursor-pointer"
+                      className="p-1.5 hover:bg-surface-hover rounded text-text-secondary hover:text-text-primary cursor-pointer transition-all"
                       title="Edit details"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDeleteEmployee(emp.id)}
-                      className="p-1.5 hover:bg-rose-950/30 rounded text-slate-500 hover:text-rose-400 cursor-pointer"
+                      className="p-1.5 hover:bg-destructive/10 rounded text-text-muted hover:text-destructive cursor-pointer transition-all"
                       title="Soft delete account"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -270,22 +270,22 @@ const EmployeesTab = ({ showToast }) => {
 
       {/* Pagination controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-slate-800 pt-4">
-          <span className="text-xxs text-slate-500">
+        <div className="flex items-center justify-between border-t border-border pt-4">
+          <span className="text-xxs text-text-muted">
             Page {page} of {totalPages}
           </span>
           <div className="flex gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="p-1.5 bg-slate-900 border border-slate-800 rounded text-slate-400 disabled:opacity-30 disabled:pointer-events-none hover:text-white cursor-pointer"
+              className="p-1.5 bg-surface border border-border rounded text-text-secondary disabled:opacity-30 disabled:pointer-events-none hover:text-text-primary cursor-pointer transition-all"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="p-1.5 bg-slate-900 border border-slate-800 rounded text-slate-400 disabled:opacity-30 disabled:pointer-events-none hover:text-white cursor-pointer"
+              className="p-1.5 bg-surface border border-border rounded text-text-secondary disabled:opacity-30 disabled:pointer-events-none hover:text-text-primary cursor-pointer transition-all"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -295,38 +295,38 @@ const EmployeesTab = ({ showToast }) => {
 
       {/* Edit Details Modal */}
       {editEmployee && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 shadow-xl">
-            <h3 className="text-sm font-semibold text-white">Edit Employee Details</h3>
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-surface border border-border rounded-lg p-6 space-y-4 shadow-xl">
+            <h3 className="text-sm font-semibold text-text-primary">Edit Employee Details</h3>
             <form onSubmit={handleSaveDetails} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xxs text-slate-400 font-medium">Name</label>
+                <label className="text-xxs text-text-secondary font-medium">Name</label>
                 <input
                   type="text"
                   name="name"
                   defaultValue={editEmployee.name}
                   required
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-slate-300 outline-none focus:border-indigo-500"
+                  className="w-full bg-background border border-border rounded px-3 py-2 text-xs text-text-primary outline-none focus:border-primary"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xxs text-slate-400 font-medium">Email Address</label>
+                <label className="text-xxs text-text-secondary font-medium">Email Address</label>
                 <input
                   type="email"
                   name="email"
                   defaultValue={editEmployee.email}
                   required
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-slate-300 outline-none focus:border-indigo-500"
+                  className="w-full bg-background border border-border rounded px-3 py-2 text-xs text-text-primary outline-none focus:border-primary"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xxs text-slate-400 font-medium">Department</label>
+                <label className="text-xxs text-text-secondary font-medium">Department</label>
                 <select
                   name="departmentId"
                   defaultValue={editEmployee.departmentId || ''}
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-slate-300 outline-none focus:border-indigo-500"
+                  className="w-full bg-background border border-border rounded px-3 py-2 text-xs text-text-primary outline-none focus:border-primary"
                 >
                   <option value="">Unassigned</option>
                   {departments.map((dept) => (
@@ -341,13 +341,13 @@ const EmployeesTab = ({ showToast }) => {
                 <button
                   type="button"
                   onClick={() => setEditEmployee(null)}
-                  className="px-3 py-1.5 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded text-xxs font-medium cursor-pointer"
+                  className="px-3 py-1.5 border border-border hover:bg-surface-hover text-text-secondary rounded text-xxs font-medium cursor-pointer transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xxs font-medium cursor-pointer"
+                  className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-xxs font-medium cursor-pointer transition-all"
                 >
                   Save Changes
                 </button>
@@ -359,28 +359,28 @@ const EmployeesTab = ({ showToast }) => {
 
       {/* Confirm Role Change Modal */}
       {confirmRole && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-slate-900 border border-slate-850 rounded-lg p-6 space-y-4 shadow-xl border-amber-900/30">
-            <div className="flex items-center gap-2 text-amber-500">
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-surface border border-border rounded-lg p-6 space-y-4 shadow-xl border-warning/30">
+            <div className="flex items-center gap-2 text-warning">
               <AlertTriangle className="w-5 h-5" />
               <h3 className="text-sm font-semibold">Verify Role Change</h3>
             </div>
-            <p className="text-xxs text-slate-400 leading-relaxed">
+            <p className="text-xxs text-text-secondary leading-relaxed">
               Are you sure you want to change <strong>{confirmRole.employee.name}</strong>'s system
-              clearance to <strong className="text-white">{confirmRole.role}</strong>? This action
-              will immediately terminate the employee's active refresh tokens, forcing them to sign
-              in again.
+              clearance to <strong className="text-text-primary">{confirmRole.role}</strong>? This
+              action will immediately terminate the employee's active refresh tokens, forcing them
+              to sign in again.
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setConfirmRole(null)}
-                className="px-3 py-1.5 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded text-xxs font-medium cursor-pointer"
+                className="px-3 py-1.5 border border-border hover:bg-surface-hover text-text-secondary rounded text-xxs font-medium cursor-pointer transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleUpdateRole(confirmRole.employee, confirmRole.role)}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xxs font-medium cursor-pointer"
+                className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-xxs font-medium cursor-pointer transition-all"
               >
                 Yes, Change Role
               </button>
@@ -490,7 +490,7 @@ const DepartmentsTab = ({ showToast }) => {
             setEditDept(null);
             setShowModal(true);
           }}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs px-3 py-2 rounded-md flex items-center gap-1.5 cursor-pointer transition-all"
+          className="bg-primary hover:bg-primary-hover text-primary-foreground font-medium text-xs px-3 py-2 rounded-md flex items-center gap-1.5 cursor-pointer transition-all"
         >
           <Plus className="w-3.5 h-3.5" />
           Add Department
@@ -499,18 +499,18 @@ const DepartmentsTab = ({ showToast }) => {
 
       {loadingDepts ? (
         <div className="flex flex-col items-center justify-center p-12 h-64 space-y-2">
-          <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-slate-500 text-xs">Loading hierarchy structure...</span>
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-text-muted text-xs">Loading hierarchy structure...</span>
         </div>
       ) : departments.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 h-64 text-slate-500 text-xs italic">
+        <div className="flex flex-col items-center justify-center p-12 h-64 text-text-muted text-xs italic">
           No departments configured. Click "Add Department" to start.
         </div>
       ) : (
-        <div className="overflow-x-auto border border-slate-800 rounded-lg">
+        <div className="overflow-x-auto border border-border rounded-lg">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase tracking-wider font-semibold">
+              <tr className="bg-background text-text-secondary border-b border-border uppercase tracking-wider font-semibold">
                 <th className="p-4">Department Name</th>
                 <th className="p-4">Parent Department</th>
                 <th className="p-4">Department Head</th>
@@ -518,23 +518,23 @@ const DepartmentsTab = ({ showToast }) => {
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-border">
               {departments.map((dept) => (
-                <tr key={dept.id} className="hover:bg-slate-900/30 text-slate-300">
-                  <td className="p-4 font-semibold text-white">{dept.name}</td>
+                <tr key={dept.id} className="hover:bg-surface-hover text-text-secondary">
+                  <td className="p-4 font-semibold text-text-primary">{dept.name}</td>
                   <td className="p-4">
-                    {dept.parent?.name || <span className="text-slate-600">None (Root)</span>}
+                    {dept.parent?.name || <span className="text-text-muted">None (Root)</span>}
                   </td>
                   <td className="p-4">
-                    {dept.head?.name || <span className="text-slate-600">Unassigned</span>}
+                    {dept.head?.name || <span className="text-text-muted">Unassigned</span>}
                   </td>
                   <td className="p-4">
                     <button
                       onClick={() => handleToggleStatus(dept)}
                       className={`px-2 py-0.5 rounded text-xxs font-semibold border flex items-center gap-1 cursor-pointer transition-all ${
                         dept.status === 'ACTIVE'
-                          ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/50 hover:bg-emerald-950/80'
-                          : 'bg-rose-950/40 text-rose-400 border-rose-800/50 hover:bg-rose-950/80'
+                          ? 'bg-success/10 text-success border-success/20 hover:bg-success/20'
+                          : 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20'
                       }`}
                     >
                       {dept.status}
@@ -543,14 +543,14 @@ const DepartmentsTab = ({ showToast }) => {
                   <td className="p-4 text-right flex justify-end gap-2">
                     <button
                       onClick={() => setEditDept(dept)}
-                      className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white cursor-pointer"
+                      className="p-1.5 hover:bg-surface-hover rounded text-text-secondary hover:text-text-primary cursor-pointer transition-all"
                       title="Edit department"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDelete(dept.id)}
-                      className="p-1.5 hover:bg-rose-950/30 rounded text-slate-500 hover:text-rose-400 cursor-pointer"
+                      className="p-1.5 hover:bg-destructive/10 rounded text-text-muted hover:text-destructive cursor-pointer transition-all"
                       title="Delete department"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -565,30 +565,32 @@ const DepartmentsTab = ({ showToast }) => {
 
       {/* Add / Edit Department Modal */}
       {(showModal || editDept) && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 shadow-xl">
-            <h3 className="text-sm font-semibold text-white">
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-surface border border-border rounded-lg p-6 space-y-4 shadow-xl">
+            <h3 className="text-sm font-semibold text-text-primary">
               {editDept ? 'Edit Department details' : 'Create New Department'}
             </h3>
             <form onSubmit={handleSaveDepartment} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xxs text-slate-400 font-medium">Department Name</label>
+                <label className="text-xxs text-text-secondary font-medium">Department Name</label>
                 <input
                   type="text"
                   name="name"
                   defaultValue={editDept ? editDept.name : ''}
                   required
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-slate-300 outline-none focus:border-indigo-500"
+                  className="w-full bg-background border border-border rounded px-3 py-2 text-xs text-text-primary outline-none focus:border-primary"
                   placeholder="e.g. Engineering"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xxs text-slate-400 font-medium">Parent Department</label>
+                <label className="text-xxs text-text-secondary font-medium">
+                  Parent Department
+                </label>
                 <select
                   name="parentId"
                   defaultValue={editDept ? editDept.parentId || '' : ''}
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-slate-300 outline-none focus:border-indigo-500"
+                  className="w-full bg-background border border-border rounded px-3 py-2 text-xs text-text-primary outline-none focus:border-primary"
                 >
                   <option value="">None (Top Level Root)</option>
                   {departments
@@ -603,13 +605,13 @@ const DepartmentsTab = ({ showToast }) => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xxs text-slate-400 font-medium">
+                <label className="text-xxs text-text-secondary font-medium">
                   Department Head / Manager
                 </label>
                 <select
                   name="headId"
                   defaultValue={editDept ? editDept.headId || '' : ''}
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-slate-300 outline-none focus:border-indigo-500"
+                  className="w-full bg-background border border-border rounded px-3 py-2 text-xs text-text-primary outline-none focus:border-primary"
                 >
                   <option value="">Unassigned</option>
                   {employees.map((emp) => (
@@ -627,13 +629,13 @@ const DepartmentsTab = ({ showToast }) => {
                     setShowModal(false);
                     setEditDept(null);
                   }}
-                  className="px-3 py-1.5 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded text-xxs font-medium cursor-pointer"
+                  className="px-3 py-1.5 border border-border hover:bg-surface-hover text-text-secondary rounded text-xxs font-medium cursor-pointer transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xxs font-medium cursor-pointer"
+                  className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-xxs font-medium cursor-pointer transition-all"
                 >
                   {editDept ? 'Save Changes' : 'Create Department'}
                 </button>
@@ -750,7 +752,7 @@ const CategoriesTab = ({ showToast }) => {
       <div className="flex justify-end">
         <button
           onClick={handleOpenAdd}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs px-3 py-2 rounded-md flex items-center gap-1.5 cursor-pointer transition-all"
+          className="bg-primary hover:bg-primary-hover text-primary-foreground font-medium text-xs px-3 py-2 rounded-md flex items-center gap-1.5 cursor-pointer transition-all"
         >
           <Plus className="w-3.5 h-3.5" />
           Add Category
@@ -759,11 +761,11 @@ const CategoriesTab = ({ showToast }) => {
 
       {loadingCats ? (
         <div className="flex flex-col items-center justify-center p-12 h-64 space-y-2">
-          <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-slate-500 text-xs">Loading categories...</span>
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-text-muted text-xs">Loading categories...</span>
         </div>
       ) : categories.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 h-64 text-slate-500 text-xs italic">
+        <div className="flex flex-col items-center justify-center p-12 h-64 text-text-muted text-xs italic">
           No asset categories found. Click "Add Category" to initialize.
         </div>
       ) : (
@@ -771,24 +773,24 @@ const CategoriesTab = ({ showToast }) => {
           {categories.map((cat) => (
             <div
               key={cat.id}
-              className="p-5 bg-slate-900 border border-slate-800 rounded-lg flex flex-col justify-between gap-4"
+              className="p-5 bg-surface border border-border rounded-lg flex flex-col justify-between gap-4"
             >
               <div className="space-y-3">
                 <div className="flex justify-between items-start">
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                  <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider">
                     {cat.name}
                   </h3>
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => handleOpenEdit(cat)}
-                      className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white cursor-pointer"
+                      className="p-1 hover:bg-surface-hover rounded text-text-secondary hover:text-text-primary cursor-pointer transition-all"
                       title="Edit Category Schema"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDelete(cat.id)}
-                      className="p-1 hover:bg-rose-950/30 rounded text-slate-500 hover:text-rose-400 cursor-pointer"
+                      className="p-1 hover:bg-destructive/10 rounded text-text-muted hover:text-destructive cursor-pointer transition-all"
                       title="Delete Category"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -797,7 +799,7 @@ const CategoriesTab = ({ showToast }) => {
                 </div>
 
                 <div className="space-y-1">
-                  <span className="text-xxs font-semibold text-slate-500 uppercase tracking-wide">
+                  <span className="text-xxs font-semibold text-text-muted uppercase tracking-wide">
                     Custom Metadata Schema
                   </span>
                   {cat.customFieldsSchema && cat.customFieldsSchema.length > 0 ? (
@@ -805,15 +807,15 @@ const CategoriesTab = ({ showToast }) => {
                       {cat.customFieldsSchema.map((field, i) => (
                         <span
                           key={i}
-                          className="px-2 py-0.5 bg-slate-950 text-slate-300 border border-slate-850 rounded text-xxs font-medium"
+                          className="px-2 py-0.5 bg-background text-text-secondary border border-border rounded text-xxs font-medium"
                         >
                           {field.name} ({field.type})
-                          {field.required && <span className="text-rose-500 ml-0.5">*</span>}
+                          {field.required && <span className="text-destructive ml-0.5">*</span>}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xxs text-slate-600 italic">
+                    <p className="text-xxs text-text-muted italic">
                       No custom schema fields configured.
                     </p>
                   )}
@@ -826,41 +828,41 @@ const CategoriesTab = ({ showToast }) => {
 
       {/* Add / Edit Category Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4 shadow-xl max-h-[85vh] overflow-y-auto">
-            <h3 className="text-sm font-semibold text-white">
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-surface border border-border rounded-lg p-6 space-y-4 shadow-xl max-h-[85vh] overflow-y-auto">
+            <h3 className="text-sm font-semibold text-text-primary">
               {editCat ? `Modify Category Schema: ${editCat.name}` : 'Register New Asset Category'}
             </h3>
             <form onSubmit={handleSaveCategory} className="space-y-5">
               <div className="space-y-1">
-                <label className="text-xxs text-slate-400 font-medium">Category Name</label>
+                <label className="text-xxs text-text-secondary font-medium">Category Name</label>
                 <input
                   type="text"
                   name="name"
                   defaultValue={editCat ? editCat.name : ''}
                   required
-                  className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-slate-300 outline-none focus:border-indigo-500"
+                  className="w-full bg-background border border-border rounded px-3 py-2 text-xs text-text-primary outline-none focus:border-primary"
                   placeholder="e.g. Electronics, Vehicles"
                 />
               </div>
 
               {/* Dynamic JSON Schema attributes builder */}
               <div className="space-y-3">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                  <span className="text-xxs font-bold text-indigo-400 uppercase tracking-wide">
+                <div className="flex justify-between items-center border-b border-border pb-2">
+                  <span className="text-xxs font-bold text-primary uppercase tracking-wide">
                     Schema attributes builder
                   </span>
                   <button
                     type="button"
                     onClick={handleAddAttribute}
-                    className="flex items-center gap-1 text-xxs font-semibold text-indigo-400 hover:text-indigo-300 cursor-pointer"
+                    className="flex items-center gap-1 text-xxs font-semibold text-primary hover:text-primary-hover cursor-pointer transition-all"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Attribute
                   </button>
                 </div>
 
                 {attributes.length === 0 ? (
-                  <p className="text-xxs text-slate-500 italic py-2 text-center">
+                  <p className="text-xxs text-text-muted italic py-2 text-center">
                     No custom schema fields added yet. Laptops, hardware, and equipment categories
                     benefit from custom fields definition.
                   </p>
@@ -874,32 +876,32 @@ const CategoriesTab = ({ showToast }) => {
                           onChange={(e) => handleAttributeChange(idx, 'name', e.target.value)}
                           placeholder="Field name (e.g. RAM)"
                           required
-                          className="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-indigo-500"
+                          className="flex-1 bg-background border border-border rounded px-2 py-1.5 text-xs text-text-primary outline-none focus:border-primary"
                         />
                         <select
                           value={attr.type}
                           onChange={(e) => handleAttributeChange(idx, 'type', e.target.value)}
-                          className="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-300 outline-none"
+                          className="bg-background border border-border rounded px-2 py-1.5 text-xs text-text-primary outline-none focus:border-primary"
                         >
                           <option value="string">String</option>
                           <option value="number">Number</option>
                           <option value="boolean">Boolean</option>
                         </select>
-                        <label className="flex items-center gap-1 text-xxs text-slate-400 cursor-pointer select-none">
+                        <label className="flex items-center gap-1 text-xxs text-text-secondary cursor-pointer select-none">
                           <input
                             type="checkbox"
                             checked={attr.required}
                             onChange={(e) =>
                               handleAttributeChange(idx, 'required', e.target.checked)
                             }
-                            className="rounded border-slate-800 text-indigo-600 outline-none"
+                            className="rounded border-border text-primary outline-none focus:ring-0 focus:ring-offset-0"
                           />
                           Req.
                         </label>
                         <button
                           type="button"
                           onClick={() => handleRemoveAttribute(idx)}
-                          className="p-1.5 text-slate-500 hover:text-rose-400 cursor-pointer"
+                          className="p-1.5 text-text-muted hover:text-destructive cursor-pointer transition-all"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -909,17 +911,17 @@ const CategoriesTab = ({ showToast }) => {
                 )}
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-3 py-1.5 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded text-xxs font-medium cursor-pointer"
+                  className="px-3 py-1.5 border border-border hover:bg-surface-hover text-text-secondary rounded text-xxs font-medium cursor-pointer transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xxs font-medium cursor-pointer"
+                  className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded text-xxs font-medium cursor-pointer transition-all"
                 >
                   {editCat ? 'Save Changes' : 'Create Category'}
                 </button>

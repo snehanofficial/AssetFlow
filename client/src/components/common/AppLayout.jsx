@@ -4,7 +4,7 @@ import GlobalHeader from './GlobalHeader.jsx';
 
 export const AppLayout = () => {
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-950 text-white">
+    <div className="flex h-screen overflow-hidden bg-background text-text-primary">
       {/* Sidebar Navigation */}
       <Sidebar />
 
