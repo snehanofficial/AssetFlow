@@ -3,16 +3,16 @@
 ## Overall Progress
 
 - Total Tasks: 12
-- Completed: 3
+- Completed: 7
 - In Progress: 0
-- Remaining: 9
-- Completion: 25%
+- Remaining: 5
+- Completion: 58%
 
 ---
 
 ## Current Milestone
 
-Objective: Implement REQ-BOK-01 & REQ-BOK-02 (Resource Booking Calendar and Overlap Validation)
+Objective: Implement REQ-AUD-01 & REQ-AUD-02 (Audit Cycle Management and Closure)
 Status: Proposed (Pending plan approval)
 
 ---
@@ -77,15 +77,75 @@ Notes
 
 ---
 
+### Step 3 — REQ-BOK-01 & REQ-BOK-02: Resource Booking Calendar & Overlap Validation
+
+Date: 2026-07-12
+
+Status: ✅ Completed
+
+Implemented
+- Coded a monthly grid scheduler in React with quick month navigations and dynamic dropdown asset selections.
+- Developed Zod schemas and transactional backend engines executing strict checks ensuring no two bookings overlap, while permitting adjacent bookings.
+- Built active detailed layout mapping schedules, booked-by details, notes, and cancel controls.
+- Unblocked resource dropdown selection by implementing minimal lists endpoints for bookable assets.
+
+Files Modified
+- [booking.validators.js](file:///e:/AssetFlow2/AssetFlow/server/features/booking/booking.validators.js) (NEW)
+- [booking.lifecycle.js](file:///e:/AssetFlow2/AssetFlow/server/features/booking/booking.lifecycle.js) (NEW)
+- [booking.service.js](file:///e:/AssetFlow2/AssetFlow/server/features/booking/booking.service.js) (NEW)
+- [booking.routes.js](file:///e:/AssetFlow2/AssetFlow/server/features/booking/booking.routes.js) (MODIFY)
+- [asset.routes.js](file:///e:/AssetFlow2/AssetFlow/server/features/assets/asset.routes.js) (MODIFY)
+- [BookingCalendar.jsx](file:///e:/AssetFlow2/AssetFlow/client/src/features/booking/BookingCalendar.jsx) (MODIFY)
+
+Validation
+- ✅ Functional: Conflict logic, adjacent checking, non-bookable blocking, and soft cancellation tests verified.
+- ✅ Integration: Successfully checked calendar lists filters, dropdown loads, and React Query cache invalidation triggers.
+- ✅ Quality: ESLint code checks passed, client compiled and bundled successfully in production mode.
+
+Notes
+- Programmed and ran `test_booking.js` asserting all time slot check branches.
+
+---
+
+### Step 4 — REQ-MNT-01 & REQ-MNT-02: Maintenance Request Workflow & Asset Logs
+
+Date: 2026-07-12
+
+Status: ✅ Completed
+
+Implemented
+- Developed repair triage Kanban board grouping tickets into columns (Pending, In Progress, Resolved, Rejected).
+- Implemented transactional backend workflow advancing ticket status and triggering asset status changes: Pending (asset unchanged) -> In Progress (asset becomes `UNDER_MAINTENANCE`) -> Resolved (asset reverts to `AVAILABLE`).
+- Added checks blocking raising repairs on retired, lost, or disposed assets.
+- Designed a chronological table showing past maintenance tickets associated with an asset.
+- Deep-linked "Raise Repair" from Dashboard Quick Actions directly to the Kanban reporting form.
+
+Files Modified
+- [maintenance.service.js](file:///e:/AssetFlow2/AssetFlow/server/features/maintenance/maintenance.service.js) (NEW)
+- [maintenance.routes.js](file:///e:/AssetFlow2/AssetFlow/server/features/maintenance/maintenance.routes.js) (MODIFY)
+- [asset.routes.js](file:///e:/AssetFlow2/AssetFlow/server/features/assets/asset.routes.js) (MODIFY)
+- [MaintenanceHistoryTable.jsx](file:///e:/AssetFlow2/AssetFlow/client/src/features/maintenance/components/MaintenanceHistoryTable.jsx) (NEW)
+- [MaintenanceKanban.jsx](file:///e:/AssetFlow2/AssetFlow/client/src/features/maintenance/MaintenanceKanban.jsx) (MODIFY)
+
+Validation
+- ✅ Functional: Tested raising, rejecting, approving/assigning, and resolving repairs.
+- ✅ Integration: Confirmed that asset status shifts correctly on triage transitions and that history is stored/rendered chronologically.
+- ✅ Quality: ESLint code checks passed, client compiled and bundled successfully in production mode.
+
+Notes
+- Programmed and ran `test_maintenance.js` asserting all workflow state conditions.
+
+---
+
 ## Pending Tasks
 
 - [x] REQ-ATH-01: Forgot Password / Password Recovery
 - [x] REQ-DSH-01: Live KPIs & Dashboard
 - [x] REQ-DSH-02: Dashboard Quick Actions
-- [ ] REQ-BOK-01: Resource Booking Calendar
-- [ ] REQ-BOK-02: Time-slot Overlap Validation
-- [ ] REQ-MNT-01: Maintenance Request & Workflow
-- [ ] REQ-MNT-02: Maintenance History per Asset
+- [x] REQ-BOK-01: Resource Booking Calendar
+- [x] REQ-BOK-02: Time-slot Overlap Validation
+- [x] REQ-MNT-01: Maintenance Request & Workflow
+- [x] REQ-MNT-02: Maintenance History per Asset
 - [ ] REQ-AUD-01: Audit Cycle Management
 - [ ] REQ-AUD-02: Audit Closure & Discrepancies
 - [ ] REQ-REP-01: Reports & Exports
@@ -111,9 +171,12 @@ Notes
 - Set up a standard token-based password reset cycle using cryptographic tokens and force logout upon reset.
 - Simulated mail recovery link logging in server console and returning token in development mode for easy developer setup verification.
 - Scoped Dashboard Available Assets count for standard Employees specifically to bookable assets, aligning with their primary dashboard actions.
+- Enforced soft-cancellations for resource bookings (setting status to `CANCELLED`) to retain audit trail.
+- Implemented user and role checks preventing employees from cancelling other colleagues' bookings.
+- Allowed standard employees to act as assigned technicians for repairs, and restricted approval/rejections to Admin/Asset Managers.
 
 ---
 
 ## Next Step
 
-Implement the Resource Booking Calendar (**REQ-BOK-01**) and Time-slot Overlap Validation (**REQ-BOK-02**).
+Implement the Audit Cycle Management and Closure (**REQ-AUD-01** & **REQ-AUD-02**).
