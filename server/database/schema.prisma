@@ -19,22 +19,121 @@ enum UserStatus {
   INACTIVE
 }
 
-model Employee {
-  id           String        @id @default(uuid()) @db.Uuid
-  email        String        @unique @db.VarChar(255)
-  password     String        @db.VarChar(255)
-  name         String        @db.VarChar(100)
-  role         UserRole      @default(EMPLOYEE)
-  status       UserStatus    @default(ACTIVE)
-  departmentId String?       @db.Uuid
-  createdAt    DateTime      @default(now()) @db.Timestamptz
-  updatedAt    DateTime      @updatedAt @db.Timestamptz
-  deletedAt    DateTime?     @db.Timestamptz
+enum AssetStatus {
+  AVAILABLE
+  ALLOCATED
+  UNDER_MAINTENANCE
+  RESERVED
+  LOST
+  RETIRED
+  DISPOSED
+}
 
-  department        Department?    @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: Restrict)
-  headedDepartments Department[]   @relation("DepartmentHead")
-  refreshTokens     RefreshToken[]
-  auditLogs         AuditLog[]
+enum AssetCondition {
+  NEW
+  GOOD
+  FAIR
+  POOR
+}
+
+enum AllocationStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}
+
+enum BookingStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum MaintenanceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AuditStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  CLOSED
+}
+
+enum AuditItemStatus {
+  PENDING
+  VERIFIED
+  MISSING
+  DAMAGED
+}
+
+enum NotificationType {
+  ASSET_ALLOCATED
+  ASSET_RETURNED
+  MAINTENANCE_APPROVED
+  MAINTENANCE_REJECTED
+  MAINTENANCE_RESOLVED
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  BOOKING_REMINDER
+  TRANSFER_APPROVED
+  TRANSFER_REJECTED
+  OVERDUE_RETURN
+  AUDIT_ASSIGNED
+  AUDIT_DISCREPANCY
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+}
+
+enum TransferStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Employee {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique @db.VarChar(255)
+  password     String     @db.VarChar(255)
+  name         String     @db.VarChar(100)
+  role         UserRole   @default(EMPLOYEE)
+  status       UserStatus @default(ACTIVE)
+  departmentId String?    @db.Uuid
+  createdAt    DateTime   @default(now()) @db.Timestamptz
+  updatedAt    DateTime   @updatedAt @db.Timestamptz
+  deletedAt    DateTime?  @db.Timestamptz
+
+  department          Department?          @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: Restrict)
+  headedDepartments   Department[]         @relation("DepartmentHead")
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  auditLogs           AuditLog[]
+  allocations         AssetAllocation[]
+  bookings            Booking[]
+  maintenanceRequests MaintenanceRequest[] @relation("MaintenanceRequester")
+  assignedMaintenance MaintenanceRequest[] @relation("MaintenanceAssignee")
+  approvedMaintenance MaintenanceRequest[] @relation("MaintenanceApprover")
+  notifications       Notification[]
+  createdAudits       AuditCycle[]         @relation("AuditCreator")
+  auditsAssigned      AuditCycle[]         @relation("AuditAssignees")
+  verifiedAuditItems  AuditItem[]          @relation("AuditItemVerifier")
+  transferRequests    TransferRequest[]    @relation("TransferRequester")
+  transferApprovals   TransferRequest[]    @relation("TransferApprover")
+  transferTargets     TransferRequest[]    @relation("TransferTarget")
 
   @@index([email])
   @@index([deletedAt])
@@ -70,7 +169,7 @@ model Department {
   parent    Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children  Department[] @relation("DepartmentHierarchy")
   head      Employee?    @relation("DepartmentHead", fields: [headId], references: [id], onDelete: SetNull)
-  employees Employee[]  @relation("DepartmentMembers")
+  employees Employee[]   @relation("DepartmentMembers")
 
   @@index([name])
   @@index([deletedAt])
@@ -85,6 +184,8 @@ model AssetCategory {
   createdAt          DateTime  @default(now()) @db.Timestamptz
   updatedAt          DateTime  @updatedAt @db.Timestamptz
   deletedAt          DateTime? @db.Timestamptz
+
+  assets Asset[]
 
   @@index([name])
   @@index([deletedAt])
@@ -111,3 +212,201 @@ model AuditLog {
   @@map("AuditLog")
 }
 
+model Asset {
+  id              String         @id @default(uuid()) @db.Uuid
+  assetTag        String         @unique @db.VarChar(50)
+  name            String         @db.VarChar(255)
+  serialNumber    String         @unique @db.VarChar(255)
+  categoryId      String         @db.Uuid
+  status          AssetStatus    @default(AVAILABLE)
+  condition       AssetCondition @default(GOOD)
+  acquisitionDate DateTime       @db.Date
+  acquisitionCost Decimal?       @db.Decimal(10, 2)
+  location        String         @db.VarChar(255)
+  isBookable      Boolean        @default(false)
+  photoUrl        String?
+  customFields    Json?
+  createdAt       DateTime       @default(now()) @db.Timestamptz
+  updatedAt       DateTime       @updatedAt @db.Timestamptz
+  deletedAt       DateTime?      @db.Timestamptz
+
+  category         AssetCategory        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  allocations      AssetAllocation[]
+  bookings         Booking[]
+  maintenance      MaintenanceRequest[]
+  auditItems       AuditItem[]
+  transferRequests TransferRequest[]
+
+  @@index([assetTag])
+  @@index([serialNumber])
+  @@index([status])
+  @@index([categoryId])
+  @@index([deletedAt])
+  @@map("Asset")
+}
+
+model AssetAllocation {
+  id               String           @id @default(uuid()) @db.Uuid
+  assetId          String           @db.Uuid
+  employeeId       String           @db.Uuid
+  status           AllocationStatus @default(ACTIVE)
+  allocatedAt      DateTime         @default(now()) @db.Timestamptz
+  expectedReturnAt DateTime?        @db.Timestamptz
+  returnedAt       DateTime?        @db.Timestamptz
+  returnNotes      String?
+  returnCondition  AssetCondition?
+  createdAt        DateTime         @default(now()) @db.Timestamptz
+  updatedAt        DateTime         @updatedAt @db.Timestamptz
+
+  asset    Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([employeeId])
+  @@index([status])
+  @@map("AssetAllocation")
+}
+
+model Booking {
+  id         String        @id @default(uuid()) @db.Uuid
+  assetId    String        @db.Uuid
+  bookedById String        @db.Uuid
+  status     BookingStatus @default(UPCOMING)
+  startDate  DateTime      @db.Timestamptz
+  endDate    DateTime      @db.Timestamptz
+  notes      String?
+  createdAt  DateTime      @default(now()) @db.Timestamptz
+  updatedAt  DateTime      @updatedAt @db.Timestamptz
+
+  asset    Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  bookedBy Employee @relation(fields: [bookedById], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([bookedById])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("Booking")
+}
+
+model MaintenanceRequest {
+  id              String              @id @default(uuid()) @db.Uuid
+  assetId         String              @db.Uuid
+  requestedById   String              @db.Uuid
+  status          MaintenanceStatus   @default(PENDING)
+  priority        MaintenancePriority @default(MEDIUM)
+  description     String              @db.Text
+  photoUrl        String?
+  assignedToId    String?             @db.Uuid
+  resolutionNotes String?
+  approvedAt      DateTime?           @db.Timestamptz
+  approvedById    String?             @db.Uuid
+  completedAt     DateTime?           @db.Timestamptz
+  createdAt       DateTime            @default(now()) @db.Timestamptz
+  updatedAt       DateTime            @updatedAt @db.Timestamptz
+
+  asset       Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  requestedBy Employee  @relation("MaintenanceRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  assignedTo  Employee? @relation("MaintenanceAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  approvedBy  Employee? @relation("MaintenanceApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([assetId])
+  @@index([requestedById])
+  @@index([status])
+  @@map("MaintenanceRequest")
+}
+
+model AuditCycle {
+  id          String      @id @default(uuid()) @db.Uuid
+  title       String      @db.VarChar(255)
+  status      AuditStatus @default(DRAFT)
+  scope       String?
+  startDate   DateTime?   @db.Date
+  endDate     DateTime?   @db.Date
+  createdById String      @db.Uuid
+  closedAt    DateTime?   @db.Timestamptz
+  createdAt   DateTime    @default(now()) @db.Timestamptz
+  updatedAt   DateTime    @updatedAt @db.Timestamptz
+
+  createdBy Employee    @relation("AuditCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  auditors  Employee[]  @relation("AuditAssignees")
+  items     AuditItem[]
+
+  @@index([createdById])
+  @@index([status])
+  @@map("AuditCycle")
+}
+
+model AuditItem {
+  id           String          @id @default(uuid()) @db.Uuid
+  auditCycleId String          @db.Uuid
+  assetId      String          @db.Uuid
+  status       AuditItemStatus @default(PENDING)
+  notes        String?
+  verifiedById String?         @db.Uuid
+  verifiedAt   DateTime?       @db.Timestamptz
+  createdAt    DateTime        @default(now()) @db.Timestamptz
+  updatedAt    DateTime        @updatedAt @db.Timestamptz
+
+  auditCycle AuditCycle @relation(fields: [auditCycleId], references: [id], onDelete: Cascade)
+  asset      Asset      @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  verifiedBy Employee?  @relation("AuditItemVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  @@index([auditCycleId])
+  @@index([assetId])
+  @@index([status])
+  @@map("AuditItem")
+}
+
+model Notification {
+  id         String             @id @default(uuid()) @db.Uuid
+  employeeId String             @db.Uuid
+  type       NotificationType
+  status     NotificationStatus @default(UNREAD)
+  title      String             @db.VarChar(255)
+  message    String             @db.Text
+  linkUrl    String?
+  createdAt  DateTime           @default(now()) @db.Timestamptz
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([status])
+  @@map("Notification")
+}
+
+model TransferRequest {
+  id               String         @id @default(uuid()) @db.Uuid
+  assetId          String         @db.Uuid
+  requestedById    String         @db.Uuid
+  targetEmployeeId String         @db.Uuid
+  status           TransferStatus @default(PENDING)
+  reason           String?
+  approvedById     String?        @db.Uuid
+  approvedAt       DateTime?      @db.Timestamptz
+  createdAt        DateTime       @default(now()) @db.Timestamptz
+  updatedAt        DateTime       @updatedAt @db.Timestamptz
+
+  asset          Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  requestedBy    Employee  @relation("TransferRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  targetEmployee Employee  @relation("TransferTarget", fields: [targetEmployeeId], references: [id], onDelete: Cascade)
+  approvedBy     Employee? @relation("TransferApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([assetId])
+  @@index([requestedById])
+  @@index([status])
+  @@map("TransferRequest")
+}
+
+model PasswordResetToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  token      String   @unique @db.VarChar(512)
+  employeeId String   @db.Uuid
+  expiresAt  DateTime @db.Timestamptz
+  createdAt  DateTime @default(now()) @db.Timestamptz
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([employeeId])
+  @@map("PasswordResetToken")
+}
